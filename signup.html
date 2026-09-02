@@ -1,0 +1,143 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Create your account — ADbridge</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+<nav class="nav">
+  <div class="wrap">
+    <a href="index.html" class="brand">
+      <span class="brand-mark">
+        <svg viewBox="0 0 26 18" fill="none">
+          <path d="M1 15 C 6 4, 20 4, 25 15" stroke="#FFB020" stroke-width="2" stroke-linecap="round"/>
+          <circle cx="1" cy="15" r="2" fill="#E9ECF1"/>
+          <circle cx="25" cy="15" r="2" fill="#E9ECF1"/>
+        </svg>
+      </span>
+      ADbridge
+    </a>
+    <div class="nav-links"></div>
+    <div class="nav-links">
+      <span>Already have an account?</span>
+      <a href="login.html" class="btn btn-ghost">Log in</a>
+    </div>
+  </div>
+</nav>
+
+<div class="auth-shell">
+  <div class="auth-card">
+    <a href="index.html" class="auth-back">&larr; Back to ADbridge</a>
+    <h1>Create your account</h1>
+    <p class="auth-sub">We'll send a 6-digit code to your email to confirm it's you.</p>
+
+    <form id="signup-form" novalidate>
+      <div class="field">
+        <label for="email">Email</label>
+        <input type="email" id="email" name="email" autocomplete="email" required />
+        <div class="field-error" id="email-error"></div>
+      </div>
+
+      <div class="field">
+        <label for="password">Password</label>
+        <input type="password" id="password" name="password" autocomplete="new-password" required minlength="8" />
+        <div class="field-error" id="password-error"></div>
+      </div>
+
+      <div class="field">
+        <label for="confirm">Confirm password</label>
+        <input type="password" id="confirm" name="confirm" autocomplete="new-password" required minlength="8" />
+        <div class="field-error" id="confirm-error"></div>
+      </div>
+
+      <div class="form-msg" id="form-msg"></div>
+
+      <div class="auth-submit">
+        <button type="submit" class="btn btn-primary btn-block" id="submit-btn">Create account</button>
+      </div>
+    </form>
+
+    <p class="auth-foot">By continuing you agree to receive a verification email from ADbridge.</p>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase-client.js"></script>
+<script>
+  const form = document.getElementById("signup-form");
+  const emailInput = document.getElementById("email");
+  const passwordInput = document.getElementById("password");
+  const confirmInput = document.getElementById("confirm");
+  const submitBtn = document.getElementById("submit-btn");
+  const formMsg = document.getElementById("form-msg");
+
+  function clearErrors() {
+    document.querySelectorAll(".field-error").forEach((el) => (el.textContent = ""));
+    document.querySelectorAll(".field input").forEach((el) => el.classList.remove("err"));
+    formMsg.className = "form-msg";
+    formMsg.textContent = "";
+  }
+
+  function fieldError(input, message) {
+    input.classList.add("err");
+    document.getElementById(input.id + "-error").textContent = message;
+  }
+
+  function showMsg(text, kind) {
+    formMsg.textContent = text;
+    formMsg.className = "form-msg show " + kind;
+  }
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    clearErrors();
+
+    const email = emailInput.value.trim();
+    const password = passwordInput.value;
+    const confirm = confirmInput.value;
+    let hasError = false;
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      fieldError(emailInput, "Enter a valid email address.");
+      hasError = true;
+    }
+    if (password.length < 8) {
+      fieldError(passwordInput, "Use at least 8 characters.");
+      hasError = true;
+    }
+    if (confirm !== password) {
+      fieldError(confirmInput, "Passwords don't match.");
+      hasError = true;
+    }
+    if (hasError) return;
+
+    submitBtn.disabled = true;
+    submitBtn.textContent = "Creating account…";
+
+    const { data, error } = await sb.auth.signUp({
+      email,
+      password,
+    });
+
+    submitBtn.disabled = false;
+    submitBtn.textContent = "Create account";
+
+    if (error) {
+      showMsg(error.message, "error");
+      return;
+    }
+
+    // Stash the email so the OTP page knows who it's verifying.
+    sessionStorage.setItem("adbridge_pending_email", email);
+    window.location.href = "otp.html?flow=signup";
+  });
+</script>
+
+</body>
+</html>

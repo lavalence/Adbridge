@@ -1,0 +1,134 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Log in — ADbridge</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+<nav class="nav">
+  <div class="wrap">
+    <a href="index.html" class="brand">
+      <span class="brand-mark">
+        <svg viewBox="0 0 26 18" fill="none">
+          <path d="M1 15 C 6 4, 20 4, 25 15" stroke="#FFB020" stroke-width="2" stroke-linecap="round"/>
+          <circle cx="1" cy="15" r="2" fill="#E9ECF1"/>
+          <circle cx="25" cy="15" r="2" fill="#E9ECF1"/>
+        </svg>
+      </span>
+      ADbridge
+    </a>
+    <div class="nav-links"></div>
+    <div class="nav-links">
+      <span>New here?</span>
+      <a href="signup.html" class="btn btn-ghost">Create account</a>
+    </div>
+  </div>
+</nav>
+
+<div class="auth-shell">
+  <div class="auth-card">
+    <a href="index.html" class="auth-back">&larr; Back to ADbridge</a>
+    <h1>Log in</h1>
+    <p class="auth-sub">Welcome back. Enter your details to continue.</p>
+
+    <form id="login-form" novalidate>
+      <div class="field">
+        <label for="email">Email</label>
+        <input type="email" id="email" name="email" autocomplete="email" required />
+        <div class="field-error" id="email-error"></div>
+      </div>
+
+      <div class="field">
+        <label for="password">Password</label>
+        <input type="password" id="password" name="password" autocomplete="current-password" required />
+        <div class="field-error" id="password-error"></div>
+      </div>
+
+      <div class="form-msg" id="form-msg"></div>
+
+      <div class="auth-submit">
+        <button type="submit" class="btn btn-primary btn-block" id="submit-btn">Log in</button>
+      </div>
+    </form>
+
+    <p class="auth-foot">Not verified yet? <a href="otp.html?flow=signup">Enter your code</a></p>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase-client.js"></script>
+<script>
+  const form = document.getElementById("login-form");
+  const emailInput = document.getElementById("email");
+  const passwordInput = document.getElementById("password");
+  const submitBtn = document.getElementById("submit-btn");
+  const formMsg = document.getElementById("form-msg");
+
+  function clearErrors() {
+    document.querySelectorAll(".field-error").forEach((el) => (el.textContent = ""));
+    document.querySelectorAll(".field input").forEach((el) => el.classList.remove("err"));
+    formMsg.className = "form-msg";
+    formMsg.textContent = "";
+  }
+
+  function fieldError(input, message) {
+    input.classList.add("err");
+    document.getElementById(input.id + "-error").textContent = message;
+  }
+
+  function showMsg(text, kind) {
+    formMsg.textContent = text;
+    formMsg.className = "form-msg show " + kind;
+  }
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    clearErrors();
+
+    const email = emailInput.value.trim();
+    const password = passwordInput.value;
+    let hasError = false;
+
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      fieldError(emailInput, "Enter a valid email address.");
+      hasError = true;
+    }
+    if (!password) {
+      fieldError(passwordInput, "Enter your password.");
+      hasError = true;
+    }
+    if (hasError) return;
+
+    submitBtn.disabled = true;
+    submitBtn.textContent = "Logging in…";
+
+    const { data, error } = await sb.auth.signInWithPassword({ email, password });
+
+    submitBtn.disabled = false;
+    submitBtn.textContent = "Log in";
+
+    if (error) {
+      // Supabase returns this message when the account exists but the
+      // email has not been confirmed via the OTP step yet.
+      if (/email not confirmed/i.test(error.message)) {
+        sessionStorage.setItem("adbridge_pending_email", email);
+        showMsg("Your email isn't verified yet. Redirecting to the code screen…", "ok");
+        setTimeout(() => (window.location.href = "otp.html?flow=signup"), 1200);
+        return;
+      }
+      showMsg(error.message, "error");
+      return;
+    }
+
+    window.location.href = "index.html";
+  });
+</script>
+
+</body>
+</html>

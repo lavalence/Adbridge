@@ -1,0 +1,170 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Verify your email — ADbridge</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+
+<nav class="nav">
+  <div class="wrap">
+    <a href="index.html" class="brand">
+      <span class="brand-mark">
+        <svg viewBox="0 0 26 18" fill="none">
+          <path d="M1 15 C 6 4, 20 4, 25 15" stroke="#FFB020" stroke-width="2" stroke-linecap="round"/>
+          <circle cx="1" cy="15" r="2" fill="#E9ECF1"/>
+          <circle cx="25" cy="15" r="2" fill="#E9ECF1"/>
+        </svg>
+      </span>
+      ADbridge
+    </a>
+    <div class="nav-links"></div>
+    <div class="nav-links"></div>
+  </div>
+</nav>
+
+<div class="auth-shell">
+  <div class="auth-card">
+    <a href="signup.html" class="auth-back">&larr; Back</a>
+    <h1>Enter your code</h1>
+    <p class="auth-sub" id="sub-copy">We sent a 6-digit code to your email.</p>
+
+    <form id="otp-form" novalidate>
+      <div class="otp-row" id="otp-row">
+        <input class="otp-digit" inputmode="numeric" pattern="[0-9]*" maxlength="1" autocomplete="one-time-code" data-idx="0" />
+        <input class="otp-digit" inputmode="numeric" pattern="[0-9]*" maxlength="1" data-idx="1" />
+        <input class="otp-digit" inputmode="numeric" pattern="[0-9]*" maxlength="1" data-idx="2" />
+        <input class="otp-digit" inputmode="numeric" pattern="[0-9]*" maxlength="1" data-idx="3" />
+        <input class="otp-digit" inputmode="numeric" pattern="[0-9]*" maxlength="1" data-idx="4" />
+        <input class="otp-digit" inputmode="numeric" pattern="[0-9]*" maxlength="1" data-idx="5" />
+      </div>
+
+      <div class="form-msg" id="form-msg"></div>
+
+      <div class="otp-meta">
+        <span id="resend-text">Didn't get it?</span>
+        <button type="button" class="link-btn" id="resend-btn">Resend code</button>
+      </div>
+
+      <div class="auth-submit">
+        <button type="submit" class="btn btn-primary btn-block" id="submit-btn">Verify</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase-client.js"></script>
+<script>
+  const params = new URLSearchParams(window.location.search);
+  const flow = params.get("flow") === "login" ? "login" : "signup"; // 'signup' also covers new-account confirmation
+  const email = params.get("email") || sessionStorage.getItem("adbridge_pending_email");
+
+  const subCopy = document.getElementById("sub-copy");
+  const form = document.getElementById("otp-form");
+  const digits = Array.from(document.querySelectorAll(".otp-digit"));
+  const formMsg = document.getElementById("form-msg");
+  const submitBtn = document.getElementById("submit-btn");
+  const resendBtn = document.getElementById("resend-btn");
+  const resendText = document.getElementById("resend-text");
+
+  if (!email) {
+    window.location.href = "signup.html";
+  } else {
+    subCopy.textContent = `We sent a 6-digit code to ${email}.`;
+  }
+
+  function showMsg(text, kind) {
+    formMsg.textContent = text;
+    formMsg.className = "form-msg show " + kind;
+  }
+
+  digits[0].focus();
+
+  digits.forEach((input, i) => {
+    input.addEventListener("input", () => {
+      input.value = input.value.replace(/[^0-9]/g, "").slice(0, 1);
+      if (input.value && i < digits.length - 1) digits[i + 1].focus();
+    });
+    input.addEventListener("keydown", (e) => {
+      if (e.key === "Backspace" && !input.value && i > 0) digits[i - 1].focus();
+    });
+    input.addEventListener("paste", (e) => {
+      e.preventDefault();
+      const pasted = (e.clipboardData.getData("text") || "").replace(/[^0-9]/g, "").slice(0, 6);
+      pasted.split("").forEach((ch, idx) => { if (digits[idx]) digits[idx].value = ch; });
+      const next = Math.min(pasted.length, digits.length - 1);
+      digits[next].focus();
+    });
+  });
+
+  function getCode() {
+    return digits.map((d) => d.value).join("");
+  }
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const token = getCode();
+
+    if (token.length !== 6) {
+      showMsg("Enter all 6 digits.", "error");
+      return;
+    }
+
+    submitBtn.disabled = true;
+    submitBtn.textContent = "Verifying…";
+
+    const { data, error } = await sb.auth.verifyOtp({
+      email,
+      token,
+      type: flow === "login" ? "email" : "signup",
+    });
+
+    submitBtn.disabled = false;
+    submitBtn.textContent = "Verify";
+
+    if (error) {
+      showMsg(error.message, "error");
+      digits.forEach((d) => (d.value = ""));
+      digits[0].focus();
+      return;
+    }
+
+    sessionStorage.removeItem("adbridge_pending_email");
+    showMsg("Verified. Redirecting…", "ok");
+    setTimeout(() => (window.location.href = "index.html"), 900);
+  });
+
+  let cooldown = 0;
+  function tickCooldown() {
+    if (cooldown <= 0) {
+      resendBtn.disabled = false;
+      resendBtn.textContent = "Resend code";
+      return;
+    }
+    resendBtn.disabled = true;
+    resendBtn.textContent = `Resend in ${cooldown}s`;
+    cooldown -= 1;
+    setTimeout(tickCooldown, 1000);
+  }
+
+  resendBtn.addEventListener("click", async () => {
+    resendBtn.disabled = true;
+    const { error } = await sb.auth.resend({ type: "signup", email });
+    if (error) {
+      showMsg(error.message, "error");
+    } else {
+      showMsg("A new code is on its way.", "ok");
+      cooldown = 30;
+      tickCooldown();
+    }
+  });
+</script>
+
+</body>
+</html>
