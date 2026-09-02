@@ -137,7 +137,8 @@
 
     sessionStorage.removeItem("adbridge_pending_email");
     showMsg("Verified. Redirecting…", "ok");
-    setTimeout(() => (window.location.href = "index.html"), 900);
+    // Signup flow verification (and login OTP fallback) both land on the dashboard.
+    setTimeout(() => (window.location.href = "dashboard.html"), 900);
   });
 
   let cooldown = 0;

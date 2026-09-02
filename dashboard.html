@@ -1,0 +1,136 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Dashboard — ADbridge</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css" />
+<style>
+  /* Dashboard-only additions — scoped here since these are new patterns not in styles.css */
+  .stat-value { font-family: "Space Grotesk", sans-serif; font-size: 28px; margin: 6px 0 2px; }
+  .stat-label { color: #93A0B4; font-size: 13px; }
+  .empty-state {
+    border: 1px dashed rgba(233,236,241,0.18);
+    border-radius: 12px;
+    padding: 32px 24px;
+    text-align: center;
+    color: #93A0B4;
+  }
+  .empty-state p { margin: 0 0 16px; }
+  .dash-loading { padding: 60px 0; text-align: center; color: #93A0B4; }
+  .user-chip { color: #93A0B4; font-size: 14px; }
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="wrap">
+    <a href="index.html" class="brand">
+      <span class="brand-mark">
+        <svg viewBox="0 0 26 18" fill="none">
+          <path d="M1 15 C 6 4, 20 4, 25 15" stroke="#FFB020" stroke-width="2" stroke-linecap="round"/>
+          <circle cx="1" cy="15" r="2" fill="#E9ECF1"/>
+          <circle cx="25" cy="15" r="2" fill="#E9ECF1"/>
+        </svg>
+      </span>
+      ADbridge
+    </a>
+    <div class="nav-links"></div>
+    <div class="nav-links">
+      <span class="user-chip" id="user-chip"></span>
+      <button type="button" class="btn btn-ghost" id="logout-btn">Log out</button>
+    </div>
+  </div>
+</nav>
+
+<div id="dash-loading" class="wrap dash-loading">Loading your dashboard…</div>
+
+<div id="dash-content" style="display:none;">
+
+  <header class="wrap section-border">
+    <div class="section-head">
+      <h2 id="welcome-heading">Welcome back</h2>
+      <p>Here's where things stand on your account.</p>
+    </div>
+  </header>
+
+  <section class="wrap section-border">
+    <div class="steps">
+      <div class="step">
+        <div class="stat-label">Wallet balance</div>
+        <div class="stat-value" id="stat-balance">₦0</div>
+        <p>Approved and available to withdraw.</p>
+      </div>
+      <div class="step">
+        <div class="stat-label">Pending review</div>
+        <div class="stat-value" id="stat-pending">₦0</div>
+        <p>Awaiting the next review cycle.</p>
+      </div>
+      <div class="step">
+        <div class="stat-label">Active campaigns</div>
+        <div class="stat-value" id="stat-campaigns">0</div>
+        <p>Currently running or listed.</p>
+      </div>
+    </div>
+  </section>
+
+  <section class="wrap section-border">
+    <div class="section-head">
+      <h2>Your campaigns</h2>
+      <p>Products you're promoting or have listed.</p>
+    </div>
+    <div class="empty-state" id="campaigns-empty">
+      <p>You don't have any campaigns yet.</p>
+      <a href="index.html#advertisers" class="btn btn-ghost">Add a product</a>
+      <a href="index.html#earners" class="btn btn-ghost">Browse products to promote</a>
+    </div>
+  </section>
+
+</div>
+
+<footer class="wrap">
+  <span>© 2026 ADbridge</span>
+  <span>Built on a verified payout pipeline</span>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase-client.js"></script>
+<script>
+  const loadingEl = document.getElementById("dash-loading");
+  const contentEl = document.getElementById("dash-content");
+  const welcomeHeading = document.getElementById("welcome-heading");
+  const userChip = document.getElementById("user-chip");
+  const logoutBtn = document.getElementById("logout-btn");
+
+  (async () => {
+    const { data: { session } } = await sb.auth.getSession();
+
+    if (!session) {
+      window.location.href = "login.html";
+      return;
+    }
+
+    const user = session.user;
+    const fullName = user.user_metadata && user.user_metadata.full_name;
+
+    welcomeHeading.textContent = fullName ? `Welcome back, ${fullName.split(" ")[0]}` : "Welcome back";
+    userChip.textContent = user.email;
+
+    loadingEl.style.display = "none";
+    contentEl.style.display = "";
+
+    // TODO: once campaigns/payouts tables exist, replace the placeholder
+    // stat values and empty state above with real queries against them.
+  })();
+
+  logoutBtn.addEventListener("click", async () => {
+    await sb.auth.signOut();
+    window.location.href = "login.html";
+  });
+</script>
+
+</body>
+</html>
