@@ -27,14 +27,14 @@ body {
   margin: 0;
   background: var(--ink);
   color: var(--text);
-  font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-  font-size: 16px;
+  font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+  font-size: 14.5px;
   line-height: 1.55;
   -webkit-font-smoothing: antialiased;
 }
 
 h1, h2, h3, .display {
-  font-family: "Space Grotesk", "Inter", sans-serif;
+  font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
   font-weight: 500;
   letter-spacing: -0.01em;
   line-height: 1.08;
@@ -85,7 +85,7 @@ a { color: inherit; }
   display: flex;
   align-items: center;
   gap: 10px;
-  font-family: "Space Grotesk", sans-serif;
+  font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
   font-size: 19px;
   font-weight: 600;
   text-decoration: none;
@@ -201,7 +201,7 @@ a { color: inherit; }
 }
 
 .node-label {
-  font-family: "Space Grotesk", sans-serif;
+  font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
   font-size: 13px;
 }
 
@@ -236,7 +236,7 @@ section { padding: 64px 0; }
 .stat:first-child { border-left: none; padding-left: 0; }
 
 .stat .num {
-  font-family: "Space Grotesk", sans-serif;
+  font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
   font-size: 40px;
   color: var(--amber);
 }
@@ -258,7 +258,7 @@ section { padding: 64px 0; }
 }
 
 .step .idx {
-  font-family: "Space Grotesk", sans-serif;
+  font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
   color: var(--amber);
   font-size: 14px;
 }
@@ -409,7 +409,7 @@ footer {
   aspect-ratio: 1 / 1.1;
   text-align: center;
   font-size: 22px;
-  font-family: "Space Grotesk", sans-serif;
+  font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
   background: var(--ink-2);
   border: 1px solid var(--line-strong);
   color: var(--text);
