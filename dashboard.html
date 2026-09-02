@@ -176,11 +176,6 @@
         <div class="stat-value" id="stat-pending">₦0</div>
         <p>Awaiting the next review cycle.</p>
       </div>
-      <div class="step">
-        <div class="stat-label">Active campaigns</div>
-        <div class="stat-value" id="stat-campaigns">0</div>
-        <p>Currently running or listed.</p>
-      </div>
     </div>
   </section>
 
@@ -188,7 +183,6 @@
     <div class="section-head-row">
       <div class="section-head">
         <h2>Your campaigns</h2>
-        <p>Products you're promoting or have listed.</p>
       </div>
       <div class="section-actions">
         <a href="product.html" class="btn btn-ghost">Add a product</a>
@@ -231,7 +225,6 @@
 
   const statBalanceEl = document.getElementById("stat-balance");
   const statPendingEl = document.getElementById("stat-pending");
-  const statCampaignsEl = document.getElementById("stat-campaigns");
 
   const campaignsLoadingEl = document.getElementById("campaigns-loading");
   const campaignsEmptyEl = document.getElementById("campaigns-empty");
@@ -442,11 +435,6 @@
 
     ownedRowsData = ownedRows;
     promotingRowsData = promotingRows;
-
-    const activeCount =
-      ownedRows.filter((r) => r.status === "active").length +
-      promotingRows.filter((r) => r.status === "active").length;
-    statCampaignsEl.textContent = activeCount;
 
     if (ownedRows.length === 0 && promotingRows.length === 0) {
       campaignsEmptyEl.style.display = "";
