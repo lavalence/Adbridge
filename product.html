@@ -41,6 +41,60 @@
   .form-msg.success { color: #4ADE80; }
   .dash-loading { padding: 60px 0; text-align: center; color: #93A0B4; }
   .user-chip { color: #93A0B4; font-size: 14px; }
+
+  /* Earning type toggle */
+  .earn-toggle {
+    display: flex;
+    gap: 10px;
+  }
+  .earn-toggle input[type="radio"] {
+    position: absolute;
+    opacity: 0;
+    width: 0;
+    height: 0;
+  }
+  .earn-toggle label {
+    flex: 1;
+    text-align: center;
+    padding: 10px 12px;
+    border: 1px solid rgba(233,236,241,0.18);
+    border-radius: 8px;
+    color: #93A0B4;
+    font-size: 14px;
+    cursor: pointer;
+    margin-bottom: 0;
+    transition: border-color .15s ease, color .15s ease, background .15s ease;
+  }
+  .earn-toggle input[type="radio"]:checked + label {
+    border-color: #FFB020;
+    color: #E9ECF1;
+    background: rgba(255,176,32,0.08);
+  }
+
+  /* Image picker */
+  .image-picker {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+  .image-preview {
+    width: 64px;
+    height: 64px;
+    border-radius: 8px;
+    border: 1px dashed rgba(233,236,241,0.18);
+    background: rgba(233,236,241,0.04);
+    background-size: cover;
+    background-position: center;
+    flex-shrink: 0;
+  }
+  .image-picker input[type="file"] {
+    display: none;
+  }
+  .image-picker-hint {
+    font-size: 12px;
+    color: #93A0B4;
+    margin: 6px 0 0;
+  }
 </style>
 </head>
 <body>
@@ -88,15 +142,29 @@
         <textarea id="p-desc" required maxlength="1000"></textarea>
       </div>
 
-      <div class="form-row">
-        <div class="form-field">
-          <label for="p-price">Price (₦)</label>
-          <input type="number" id="p-price" min="0" step="0.01" required />
+      <div class="form-field">
+        <label for="p-price">Price (₦)</label>
+        <input type="number" id="p-price" min="0" step="0.01" required />
+      </div>
+
+      <div class="form-field">
+        <label>Earning type</label>
+        <div class="earn-toggle">
+          <input type="radio" name="earn-type" id="earn-fixed" value="fixed" checked />
+          <label for="earn-fixed">Fixed interest</label>
+          <input type="radio" name="earn-type" id="earn-commission" value="commission" />
+          <label for="earn-commission">Commission</label>
         </div>
-        <div class="form-field">
-          <label for="p-commission">Commission (%)</label>
-          <input type="number" id="p-commission" min="0" max="100" step="0.1" required />
-        </div>
+      </div>
+
+      <div class="form-field" id="fixed-field">
+        <label for="p-fixed-amount">Fixed interest amount (₦)</label>
+        <input type="number" id="p-fixed-amount" min="0" step="0.01" />
+      </div>
+
+      <div class="form-field" id="commission-field" style="display:none;">
+        <label for="p-commission">Commission (%)</label>
+        <input type="number" id="p-commission" min="0" max="100" step="0.1" />
       </div>
 
       <div class="form-field">
@@ -105,8 +173,15 @@
       </div>
 
       <div class="form-field">
-        <label for="p-image">Image URL (optional)</label>
-        <input type="url" id="p-image" placeholder="https://" />
+        <label for="p-image">Product image (optional)</label>
+        <div class="image-picker">
+          <div class="image-preview" id="p-image-preview"></div>
+          <div>
+            <button type="button" class="btn btn-ghost" id="p-image-btn">Choose from gallery</button>
+            <p class="image-picker-hint" id="p-image-name">No image selected</p>
+          </div>
+        </div>
+        <input type="file" id="p-image" accept="image/*" />
       </div>
 
       <button type="submit" class="btn btn-primary" id="submit-btn">List product</button>
@@ -131,6 +206,47 @@
   const form = document.getElementById("product-form");
   const submitBtn = document.getElementById("submit-btn");
   const msgEl = document.getElementById("form-msg");
+
+  // Earning type toggle
+  const earnFixedRadio = document.getElementById("earn-fixed");
+  const earnCommissionRadio = document.getElementById("earn-commission");
+  const fixedFieldEl = document.getElementById("fixed-field");
+  const commissionFieldEl = document.getElementById("commission-field");
+
+  function syncEarnType() {
+    const isFixed = earnFixedRadio.checked;
+    fixedFieldEl.style.display = isFixed ? "" : "none";
+    commissionFieldEl.style.display = isFixed ? "none" : "";
+  }
+  earnFixedRadio.addEventListener("change", syncEarnType);
+  earnCommissionRadio.addEventListener("change", syncEarnType);
+  syncEarnType();
+
+  // Image picker (choose from gallery)
+  const imageInput = document.getElementById("p-image");
+  const imageBtn = document.getElementById("p-image-btn");
+  const imagePreview = document.getElementById("p-image-preview");
+  const imageNameEl = document.getElementById("p-image-name");
+  let selectedImageFile = null;
+
+  imageBtn.addEventListener("click", () => imageInput.click());
+
+  imageInput.addEventListener("change", () => {
+    const file = imageInput.files && imageInput.files[0];
+    if (!file) {
+      selectedImageFile = null;
+      imagePreview.style.backgroundImage = "";
+      imageNameEl.textContent = "No image selected";
+      return;
+    }
+    selectedImageFile = file;
+    imageNameEl.textContent = file.name;
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      imagePreview.style.backgroundImage = `url(${e.target.result})`;
+    };
+    reader.readAsDataURL(file);
+  });
 
   let currentUser = null;
 
@@ -162,11 +278,20 @@
     const name = document.getElementById("p-name").value.trim();
     const description = document.getElementById("p-desc").value.trim();
     const price = parseFloat(document.getElementById("p-price").value);
-    const commission_rate = parseFloat(document.getElementById("p-commission").value);
+    const earning_type = earnFixedRadio.checked ? "fixed" : "commission";
+    const fixed_amount = earning_type === "fixed"
+      ? parseFloat(document.getElementById("p-fixed-amount").value)
+      : null;
+    const commission_rate = earning_type === "commission"
+      ? parseFloat(document.getElementById("p-commission").value)
+      : null;
     const product_url = document.getElementById("p-url").value.trim();
-    const image_url = document.getElementById("p-image").value.trim() || null;
 
-    if (!name || !description || isNaN(price) || isNaN(commission_rate) || !product_url) {
+    if (
+      !name || !description || isNaN(price) || !product_url ||
+      (earning_type === "fixed" && isNaN(fixed_amount)) ||
+      (earning_type === "commission" && isNaN(commission_rate))
+    ) {
       msgEl.textContent = "Please fill in all required fields.";
       msgEl.className = "form-msg error";
       return;
@@ -175,9 +300,32 @@
     submitBtn.disabled = true;
     submitBtn.textContent = "Listing…";
 
+    let image_url = null;
+
+    if (selectedImageFile) {
+      // ASSUMED STORAGE — bucket: product-images (public)
+      // path convention: <owner_id>/<timestamp>-<filename>
+      const path = `${currentUser.id}/${Date.now()}-${selectedImageFile.name}`;
+      const { error: uploadErr } = await sb.storage
+        .from("product-images")
+        .upload(path, selectedImageFile);
+
+      if (uploadErr) {
+        submitBtn.disabled = false;
+        submitBtn.textContent = "List product";
+        msgEl.textContent = uploadErr.message || "Image upload failed. Please try again.";
+        msgEl.className = "form-msg error";
+        return;
+      }
+
+      const { data: publicUrlData } = sb.storage.from("product-images").getPublicUrl(path);
+      image_url = publicUrlData && publicUrlData.publicUrl ? publicUrlData.publicUrl : null;
+    }
+
     // ASSUMED SCHEMA — table: products
     // columns: id (uuid, default), owner_id (uuid, fk auth.users), name (text),
-    // description (text), price (numeric), commission_rate (numeric),
+    // description (text), price (numeric), earning_type (text: 'fixed' | 'commission'),
+    // fixed_amount (numeric, nullable), commission_rate (numeric, nullable),
     // product_url (text), image_url (text, nullable), status (text, default 'active'),
     // created_at (timestamptz, default now())
     const { error } = await sb.from("products").insert({
@@ -185,6 +333,8 @@
       name,
       description,
       price,
+      earning_type,
+      fixed_amount,
       commission_rate,
       product_url,
       image_url,

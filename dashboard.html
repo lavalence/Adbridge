@@ -12,6 +12,8 @@
   /* Dashboard-only additions — scoped here since these are new patterns not in styles.css */
   .stat-value { font-family: "Space Grotesk", sans-serif; font-size: 28px; margin: 6px 0 2px; }
   .stat-label { color: #93A0B4; font-size: 13px; }
+  .stat-head { display: flex; align-items: center; gap: 8px; }
+  .stat-icon { width: 18px; height: 18px; flex-shrink: 0; }
   .empty-state {
     border: 1px dashed rgba(233,236,241,0.18);
     border-radius: 12px;
@@ -80,7 +82,14 @@
   <section class="wrap section-border">
     <div class="steps">
       <div class="step">
-        <div class="stat-label">Wallet balance</div>
+        <div class="stat-head">
+          <svg class="stat-icon" viewBox="0 0 24 24" fill="none" stroke="#FFB020" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 7a2 2 0 0 1 2-2h13a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7Z"/>
+            <path d="M16 12h3"/>
+            <path d="M3 9h18"/>
+          </svg>
+          <div class="stat-label">Wallet balance</div>
+        </div>
         <div class="stat-value" id="stat-balance">₦0</div>
         <p>Approved and available to withdraw.</p>
       </div>
