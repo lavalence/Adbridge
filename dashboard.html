@@ -43,17 +43,23 @@
     flex-wrap: wrap;
   }
   .section-actions { display: flex; gap: 10px; flex-shrink: 0; }
-  .campaign-group { margin-top: 8px; }
+  .campaign-group {
+    margin-top: 16px;
+    border: 1px solid rgba(233,236,241,0.12);
+    border-radius: 12px;
+    padding: 18px 20px;
+    background: rgba(233,236,241,0.02);
+  }
   .campaign-group:first-of-type { margin-top: 0; }
   .campaign-group h4 {
     font-size: 13px;
     text-transform: uppercase;
     letter-spacing: 0.04em;
-    color: #93A0B4;
-    margin: 24px 0 8px;
+    margin: 0 0 8px;
     font-weight: 600;
   }
-  .campaign-group:first-of-type h4 { margin-top: 0; }
+  .campaign-group.owned h4 { color: #FFB020; }
+  .campaign-group.promoting h4 { color: #7DB8FF; }
   .campaign-row {
     display: flex;
     justify-content: space-between;
@@ -194,12 +200,12 @@
       <p>You don't have any campaigns yet — add a product to list, or browse products to promote above.</p>
     </div>
     <div id="campaigns-list" style="display:none;">
-      <div class="campaign-group">
+      <div class="campaign-group owned">
         <h4>Products you listed</h4>
         <div id="owned-list"></div>
         <p class="subgroup-empty" id="owned-empty" style="display:none;">Nothing listed yet.</p>
       </div>
-      <div class="campaign-group">
+      <div class="campaign-group promoting">
         <h4>Products you're promoting</h4>
         <div id="promoting-list"></div>
         <p class="subgroup-empty" id="promoting-empty" style="display:none;">Not promoting anything yet.</p>
