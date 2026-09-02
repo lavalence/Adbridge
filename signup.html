@@ -8,6 +8,31 @@
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="styles.css" />
+<style>
+  /* Password field with icon toggle — scoped to this page since it's a new pattern */
+  .password-field { position: relative; }
+  .password-field input { padding-right: 44px; }
+  .password-toggle {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    width: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: #93A0B4;
+    padding: 0;
+  }
+  .password-toggle:hover { color: #E9ECF1; }
+  .password-toggle svg { width: 20px; height: 20px; }
+  .password-toggle .icon-off { display: none; }
+  .password-toggle.is-visible .icon-on { display: none; }
+  .password-toggle.is-visible .icon-off { display: block; }
+</style>
 </head>
 <body>
 
@@ -39,6 +64,18 @@
 
     <form id="signup-form" novalidate>
       <div class="field">
+        <label for="fullname">Full name</label>
+        <input type="text" id="fullname" name="fullname" autocomplete="name" required />
+        <div class="field-error" id="fullname-error"></div>
+      </div>
+
+      <div class="field">
+        <label for="dob">Date of birth</label>
+        <input type="date" id="dob" name="dob" autocomplete="bday" required />
+        <div class="field-error" id="dob-error"></div>
+      </div>
+
+      <div class="field">
         <label for="email">Email</label>
         <input type="email" id="email" name="email" autocomplete="email" required />
         <div class="field-error" id="email-error"></div>
@@ -46,13 +83,37 @@
 
       <div class="field">
         <label for="password">Password</label>
-        <input type="password" id="password" name="password" autocomplete="new-password" required minlength="8" />
+        <div class="password-field">
+          <input type="password" id="password" name="password" autocomplete="new-password" required minlength="8" />
+          <button type="button" class="password-toggle" data-target="password" aria-label="Show password" aria-pressed="false">
+            <svg class="icon-on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7Z"/>
+              <circle cx="12" cy="12" r="3"/>
+            </svg>
+            <svg class="icon-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M17.94 17.94A10.94 10.94 0 0 1 12 19c-7 0-11-7-11-7a20.3 20.3 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 7 11 7a20.3 20.3 0 0 1-2.68 3.68M14.12 14.12a3 3 0 1 1-4.24-4.24"/>
+              <path d="M1 1l22 22"/>
+            </svg>
+          </button>
+        </div>
         <div class="field-error" id="password-error"></div>
       </div>
 
       <div class="field">
         <label for="confirm">Confirm password</label>
-        <input type="password" id="confirm" name="confirm" autocomplete="new-password" required minlength="8" />
+        <div class="password-field">
+          <input type="password" id="confirm" name="confirm" autocomplete="new-password" required minlength="8" />
+          <button type="button" class="password-toggle" data-target="confirm" aria-label="Show password" aria-pressed="false">
+            <svg class="icon-on" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7Z"/>
+              <circle cx="12" cy="12" r="3"/>
+            </svg>
+            <svg class="icon-off" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M17.94 17.94A10.94 10.94 0 0 1 12 19c-7 0-11-7-11-7a20.3 20.3 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 7 11 7a20.3 20.3 0 0 1-2.68 3.68M14.12 14.12a3 3 0 1 1-4.24-4.24"/>
+              <path d="M1 1l22 22"/>
+            </svg>
+          </button>
+        </div>
         <div class="field-error" id="confirm-error"></div>
       </div>
 
@@ -64,6 +125,7 @@
     </form>
 
     <p class="auth-foot">By continuing you agree to receive a verification email from ADbridge.</p>
+    <p class="auth-foot">Already have an account? <a href="login.html">Log in</a></p>
   </div>
 </div>
 
@@ -71,11 +133,25 @@
 <script src="supabase-client.js"></script>
 <script>
   const form = document.getElementById("signup-form");
+  const fullnameInput = document.getElementById("fullname");
+  const dobInput = document.getElementById("dob");
   const emailInput = document.getElementById("email");
   const passwordInput = document.getElementById("password");
   const confirmInput = document.getElementById("confirm");
   const submitBtn = document.getElementById("submit-btn");
   const formMsg = document.getElementById("form-msg");
+
+  // Password show/hide toggles
+  document.querySelectorAll(".password-toggle").forEach((btn) => {
+    btn.addEventListener("click", () => {
+      const target = document.getElementById(btn.dataset.target);
+      const isVisible = target.type === "text";
+      target.type = isVisible ? "password" : "text";
+      btn.classList.toggle("is-visible", !isVisible);
+      btn.setAttribute("aria-pressed", String(!isVisible));
+      btn.setAttribute("aria-label", isVisible ? "Show password" : "Hide password");
+    });
+  });
 
   function clearErrors() {
     document.querySelectorAll(".field-error").forEach((el) => (el.textContent = ""));
@@ -94,15 +170,39 @@
     formMsg.className = "form-msg show " + kind;
   }
 
+  function calcAge(dobStr) {
+    const dob = new Date(dobStr);
+    const today = new Date();
+    let age = today.getFullYear() - dob.getFullYear();
+    const monthDiff = today.getMonth() - dob.getMonth();
+    if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < dob.getDate())) {
+      age--;
+    }
+    return age;
+  }
+
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
     clearErrors();
 
+    const fullname = fullnameInput.value.trim();
+    const dob = dobInput.value;
     const email = emailInput.value.trim();
     const password = passwordInput.value;
     const confirm = confirmInput.value;
     let hasError = false;
 
+    if (fullname.length < 2) {
+      fieldError(fullnameInput, "Enter your full name.");
+      hasError = true;
+    }
+    if (!dob) {
+      fieldError(dobInput, "Enter your date of birth.");
+      hasError = true;
+    } else if (calcAge(dob) < 18) {
+      fieldError(dobInput, "You must be at least 18 years old.");
+      hasError = true;
+    }
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       fieldError(emailInput, "Enter a valid email address.");
       hasError = true;
@@ -123,6 +223,12 @@
     const { data, error } = await sb.auth.signUp({
       email,
       password,
+      options: {
+        data: {
+          full_name: fullname,
+          date_of_birth: dob,
+        },
+      },
     });
 
     submitBtn.disabled = false;
