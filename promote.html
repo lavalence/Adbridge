@@ -313,6 +313,15 @@
   const returnInterestEl = document.getElementById("return-interest");
   const returnTotalEl = document.getElementById("return-total");
 
+  // Declared up front — computeReturn() reads currentProduct, and setBudget()
+  // (called below, before the session/product load) triggers computeReturn()
+  // immediately. If these were declared with `let` further down the script,
+  // that early call would throw "Cannot access 'currentProduct' before
+  // initialization" and silently kill the whole script, leaving the page
+  // stuck on the loading screen forever.
+  let currentUser = null;
+  let currentProduct = null;
+
   function naira(n) {
     return "₦" + Number(n || 0).toLocaleString();
   }
@@ -358,9 +367,6 @@
   });
 
   setBudget(MIN_BUDGET);
-
-  let currentUser = null;
-  let currentProduct = null;
 
   (async () => {
     const { data: { session } } = await sb.auth.getSession();

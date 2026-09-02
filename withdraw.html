@@ -1,0 +1,346 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Withdraw — ADbridge</title>
+<link rel="stylesheet" href="styles.css" />
+<style>
+  /* Page-only additions — scoped here since these are new patterns not in styles.css */
+  .withdraw-card { max-width: 480px; margin: 0 auto; }
+
+  .balance-box {
+    border: 1px solid rgba(233,236,241,0.14);
+    border-radius: 12px;
+    padding: 20px 22px;
+    margin-bottom: 28px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  .balance-box .balance-label { color: #93A0B4; font-size: 13px; margin-bottom: 4px; }
+  .balance-box .balance-value { font-size: 26px; font-weight: 600; }
+  .balance-box .balance-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    background: rgba(255,176,32,0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+  .balance-box .balance-icon svg { width: 18px; height: 18px; }
+
+  .form-field { margin-bottom: 18px; }
+  .form-field label {
+    display: block;
+    font-size: 13px;
+    color: #93A0B4;
+    margin-bottom: 6px;
+  }
+  .form-field input,
+  .form-field select {
+    width: 100%;
+    box-sizing: border-box;
+    background: rgba(233,236,241,0.04);
+    border: 1px solid rgba(233,236,241,0.18);
+    border-radius: 8px;
+    padding: 10px 12px;
+    color: #E9ECF1;
+    font-family: inherit;
+    font-size: 14px;
+  }
+  .form-field .field-hint {
+    font-size: 12px;
+    color: #93A0B4;
+    margin: 6px 0 0;
+  }
+  .amount-max-btn {
+    background: none;
+    border: none;
+    color: #FFB020;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
+    padding: 0;
+    margin-left: 8px;
+  }
+  .amount-max-btn:hover { text-decoration: underline; }
+
+  .form-msg { font-size: 14px; margin-top: 10px; min-height: 20px; }
+  .form-msg.error { color: #FF6B6B; }
+  .form-msg.success { color: #4ADE80; }
+
+  .dash-loading { padding: 60px 0; text-align: center; color: #93A0B4; }
+  .user-chip { color: #93A0B4; font-size: 14px; }
+  .nav-actions {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    font-size: 14.5px;
+  }
+  @media (max-width: 880px) {
+    .user-chip { display: none; }
+  }
+
+  .empty-state {
+    border: 1px dashed rgba(233,236,241,0.18);
+    border-radius: 12px;
+    padding: 32px 24px;
+    text-align: center;
+    color: #93A0B4;
+    max-width: 480px;
+    margin: 0 auto;
+  }
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="wrap">
+    <a href="index.html" class="brand">
+      <span class="brand-mark">
+        <svg viewBox="0 0 26 18" fill="none">
+          <path d="M1 15 C 6 4, 20 4, 25 15" stroke="#FFB020" stroke-width="2" stroke-linecap="round"/>
+          <circle cx="1" cy="15" r="2" fill="#E9ECF1"/>
+          <circle cx="25" cy="15" r="2" fill="#E9ECF1"/>
+        </svg>
+      </span>
+      ADbridge
+    </a>
+    <div class="nav-links"></div>
+    <div class="nav-actions">
+      <span class="user-chip" id="user-chip"></span>
+      <button type="button" class="btn btn-ghost" id="logout-btn">Log out</button>
+    </div>
+  </div>
+</nav>
+
+<div id="dash-loading" class="wrap dash-loading">Loading…</div>
+
+<div id="dash-content" style="display:none;">
+
+  <header class="wrap section-border">
+    <a href="dashboard.html" class="auth-back" style="margin-bottom:0;">&larr; Back to dashboard</a>
+    <div class="section-head" style="margin-top:20px;">
+      <h2>Withdraw</h2>
+      <p>Move your approved balance to your bank account.</p>
+    </div>
+  </header>
+
+  <section class="wrap">
+    <div class="withdraw-card">
+
+      <div class="balance-box">
+        <div>
+          <div class="balance-label">Available balance</div>
+          <div class="balance-value" id="available-balance">₦0</div>
+        </div>
+        <div class="balance-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="#FFB020" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M3 7a2 2 0 0 1 2-2h13a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7Z"/>
+            <path d="M16 12h3"/>
+            <path d="M3 9h18"/>
+          </svg>
+        </div>
+      </div>
+
+      <div id="zero-balance-empty" class="empty-state" style="display:none;">
+        <p>You don't have any approved balance to withdraw yet. Balances are reviewed on the 25th of each month and become available on the 28th.</p>
+        <a href="dashboard.html" class="btn btn-ghost">Back to dashboard</a>
+      </div>
+
+      <form id="withdraw-form" style="display:none;">
+        <div class="form-field">
+          <label for="w-bank">Bank name</label>
+          <select id="w-bank" required>
+            <option value="" disabled selected>Select your bank</option>
+            <option>Access Bank</option>
+            <option>GTBank</option>
+            <option>Zenith Bank</option>
+            <option>UBA</option>
+            <option>First Bank</option>
+            <option>Kuda</option>
+            <option>Opay</option>
+            <option>Moniepoint</option>
+            <option>Other</option>
+          </select>
+        </div>
+
+        <div class="form-field">
+          <label for="w-account-number">Account number</label>
+          <input type="text" id="w-account-number" inputmode="numeric" pattern="[0-9]{10}" maxlength="10" placeholder="10-digit account number" required />
+        </div>
+
+        <div class="form-field">
+          <label for="w-account-name">Account name</label>
+          <input type="text" id="w-account-name" placeholder="Name on the account" required />
+        </div>
+
+        <div class="form-field">
+          <label for="w-amount">Amount to withdraw (₦)</label>
+          <input type="number" id="w-amount" min="1" step="1" required />
+          <p class="field-hint">Minimum ₦1,000. <button type="button" class="amount-max-btn" id="w-max-btn">Withdraw full balance</button></p>
+        </div>
+
+        <button type="submit" class="btn btn-primary btn-block" id="submit-btn">Request withdrawal</button>
+        <div class="form-msg" id="form-msg"></div>
+      </form>
+
+    </div>
+  </section>
+
+</div>
+
+<footer class="wrap">
+  <span>© 2026 ADbridge</span>
+  <span>Built on a verified payout pipeline</span>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase-client.js"></script>
+<script>
+  const MIN_WITHDRAWAL = 1000;
+
+  const loadingEl = document.getElementById("dash-loading");
+  const contentEl = document.getElementById("dash-content");
+  const userChip = document.getElementById("user-chip");
+  const logoutBtn = document.getElementById("logout-btn");
+
+  const availableBalanceEl = document.getElementById("available-balance");
+  const zeroBalanceEl = document.getElementById("zero-balance-empty");
+  const form = document.getElementById("withdraw-form");
+  const submitBtn = document.getElementById("submit-btn");
+  const msgEl = document.getElementById("form-msg");
+
+  const bankSelect = document.getElementById("w-bank");
+  const accountNumberInput = document.getElementById("w-account-number");
+  const accountNameInput = document.getElementById("w-account-name");
+  const amountInput = document.getElementById("w-amount");
+  const maxBtn = document.getElementById("w-max-btn");
+
+  function naira(n) {
+    return "₦" + Number(n || 0).toLocaleString();
+  }
+
+  let currentUser = null;
+  let availableBalance = 0;
+
+  maxBtn.addEventListener("click", () => {
+    amountInput.value = availableBalance;
+  });
+
+  (async () => {
+    const { data: { session } } = await sb.auth.getSession();
+
+    if (!session) {
+      window.location.href = "login.html";
+      return;
+    }
+
+    currentUser = session.user;
+    userChip.textContent = currentUser.email;
+
+    // ASSUMED SCHEMA — table: payouts
+    // columns: id, user_id (uuid, fk auth.users), amount (numeric),
+    // status (text: 'approved' | 'pending'), created_at
+    // Available-to-withdraw = sum of approved payouts minus any withdrawals
+    // already requested against them (handled server-side / via a view in
+    // a real implementation — here we sum approved payouts as a placeholder).
+    const { data: payouts, error: payoutsErr } = await sb
+      .from("payouts")
+      .select("amount, status")
+      .eq("user_id", currentUser.id);
+
+    loadingEl.style.display = "none";
+    contentEl.style.display = "";
+
+    if (!payoutsErr && payouts) {
+      availableBalance = payouts
+        .filter((p) => p.status === "approved")
+        .reduce((sum, p) => sum + (Number(p.amount) || 0), 0);
+    }
+
+    availableBalanceEl.textContent = naira(availableBalance);
+    amountInput.max = availableBalance;
+
+    if (availableBalance < MIN_WITHDRAWAL) {
+      zeroBalanceEl.style.display = "";
+      form.style.display = "none";
+    } else {
+      zeroBalanceEl.style.display = "none";
+      form.style.display = "";
+    }
+  })();
+
+  form.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    msgEl.textContent = "";
+    msgEl.className = "form-msg";
+
+    const bank_name = bankSelect.value;
+    const account_number = accountNumberInput.value.trim();
+    const account_name = accountNameInput.value.trim();
+    const amount = parseFloat(amountInput.value);
+
+    if (!bank_name || !/^\d{10}$/.test(account_number) || !account_name) {
+      msgEl.textContent = "Please fill in all bank details correctly.";
+      msgEl.className = "form-msg error";
+      return;
+    }
+
+    if (!amount || amount < MIN_WITHDRAWAL) {
+      msgEl.textContent = `Enter an amount of at least ${naira(MIN_WITHDRAWAL)}.`;
+      msgEl.className = "form-msg error";
+      return;
+    }
+
+    if (amount > availableBalance) {
+      msgEl.textContent = "You can't withdraw more than your available balance.";
+      msgEl.className = "form-msg error";
+      return;
+    }
+
+    submitBtn.disabled = true;
+    submitBtn.textContent = "Submitting…";
+
+    // ASSUMED SCHEMA — table: withdrawals
+    // columns: id (uuid, default), user_id (uuid, fk auth.users), amount (numeric),
+    // bank_name (text), account_number (text), account_name (text),
+    // status (text, default 'pending'), created_at (timestamptz, default now())
+    // A trusted process (Edge Function / admin review) should verify the
+    // requested amount against the user's true available balance before
+    // paying out — never trust the client-computed balance for the payout itself.
+    const { error } = await sb.from("withdrawals").insert({
+      user_id: currentUser.id,
+      amount,
+      bank_name,
+      account_number,
+      account_name,
+      status: "pending",
+    });
+
+    submitBtn.disabled = false;
+    submitBtn.textContent = "Request withdrawal";
+
+    if (error) {
+      msgEl.textContent = error.message || "Couldn't submit your withdrawal. Please try again.";
+      msgEl.className = "form-msg error";
+      return;
+    }
+
+    msgEl.textContent = "Withdrawal requested. Redirecting to your dashboard…";
+    msgEl.className = "form-msg success";
+    form.reset();
+    setTimeout(() => { window.location.href = "dashboard.html"; }, 1400);
+  });
+
+  logoutBtn.addEventListener("click", async () => {
+    await sb.auth.signOut();
+    window.location.href = "login.html";
+  });
+</script>
+
+</body>
+</html>

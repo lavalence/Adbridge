@@ -11,6 +11,8 @@
   .stat-label { color: #93A0B4; font-size: 13px; }
   .stat-head { display: flex; align-items: center; gap: 8px; }
   .stat-icon { width: 18px; height: 18px; flex-shrink: 0; }
+  .stat-action { margin-top: 14px; padding: 9px 16px; font-size: 13.5px; }
+  .stat-action .btn-icon { width: 15px; height: 15px; flex-shrink: 0; }
   .empty-state {
     border: 1px dashed rgba(233,236,241,0.18);
     border-radius: 12px;
@@ -167,9 +169,22 @@
         </div>
         <div class="stat-value" id="stat-balance">₦0</div>
         <p>Approved and available to withdraw.</p>
+        <a href="withdraw.html" class="btn btn-primary stat-action">
+          <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 5v14"/>
+            <path d="M5 12l7 7 7-7"/>
+          </svg>
+          Withdraw
+        </a>
       </div>
       <div class="step">
-        <div class="stat-label">Pending review</div>
+        <div class="stat-head">
+          <svg class="stat-icon" viewBox="0 0 24 24" fill="none" stroke="#93A0B4" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="9"/>
+            <path d="M12 7v5l3.5 2"/>
+          </svg>
+          <div class="stat-label">Pending review</div>
+        </div>
         <div class="stat-value" id="stat-pending">₦0</div>
         <p>Awaiting the next review cycle.</p>
       </div>
