@@ -70,6 +70,11 @@
     color: #E9ECF1;
     background: rgba(255,176,32,0.08);
   }
+  .field-hint {
+    font-size: 12px;
+    color: #93A0B4;
+    margin: 6px 0 0;
+  }
 
   /* Image picker */
   .image-picker {
@@ -112,7 +117,7 @@
       ADbridge
     </a>
     <div class="nav-links"></div>
-    <div class="nav-links">
+    <div class="nav-actions">
       <span class="user-chip" id="user-chip"></span>
       <button type="button" class="btn btn-ghost" id="logout-btn">Log out</button>
     </div>
@@ -143,11 +148,6 @@
       </div>
 
       <div class="form-field">
-        <label for="p-price">Price (₦)</label>
-        <input type="number" id="p-price" min="0" step="0.01" required />
-      </div>
-
-      <div class="form-field">
         <label>Earning type</label>
         <div class="earn-toggle">
           <input type="radio" name="earn-type" id="earn-fixed" value="fixed" checked />
@@ -155,6 +155,7 @@
           <input type="radio" name="earn-type" id="earn-commission" value="commission" />
           <label for="earn-commission">Commission</label>
         </div>
+        <p class="field-hint">Fixed interest pays a set percentage regardless of price. Commission is based on the product price.</p>
       </div>
 
       <div class="form-field" id="fixed-field">
@@ -162,9 +163,15 @@
         <input type="number" id="p-fixed-rate" min="0" max="100" step="0.1" />
       </div>
 
-      <div class="form-field" id="commission-field" style="display:none;">
-        <label for="p-commission">Commission (%)</label>
-        <input type="number" id="p-commission" min="0" max="100" step="0.1" />
+      <div id="commission-field" style="display:none;">
+        <div class="form-field">
+          <label for="p-price">Price (₦)</label>
+          <input type="number" id="p-price" min="0" step="0.01" />
+        </div>
+        <div class="form-field">
+          <label for="p-commission">Commission (%)</label>
+          <input type="number" id="p-commission" min="0" max="100" step="0.1" />
+        </div>
       </div>
 
       <div class="form-field">
@@ -207,16 +214,31 @@
   const submitBtn = document.getElementById("submit-btn");
   const msgEl = document.getElementById("form-msg");
 
-  // Earning type toggle
+  // Earning type toggle — controls which fields are shown/required
   const earnFixedRadio = document.getElementById("earn-fixed");
   const earnCommissionRadio = document.getElementById("earn-commission");
   const fixedFieldEl = document.getElementById("fixed-field");
   const commissionFieldEl = document.getElementById("commission-field");
+  const priceInput = document.getElementById("p-price");
+  const fixedRateInput = document.getElementById("p-fixed-rate");
+  const commissionInput = document.getElementById("p-commission");
 
   function syncEarnType() {
     const isFixed = earnFixedRadio.checked;
     fixedFieldEl.style.display = isFixed ? "" : "none";
     commissionFieldEl.style.display = isFixed ? "none" : "";
+
+    // Fixed interest: no price needed. Commission: price required.
+    fixedRateInput.required = isFixed;
+    commissionInput.required = !isFixed;
+    priceInput.required = !isFixed;
+
+    if (isFixed) {
+      priceInput.value = "";
+      commissionInput.value = "";
+    } else {
+      fixedRateInput.value = "";
+    }
   }
   earnFixedRadio.addEventListener("change", syncEarnType);
   earnCommissionRadio.addEventListener("change", syncEarnType);
@@ -277,20 +299,23 @@
 
     const name = document.getElementById("p-name").value.trim();
     const description = document.getElementById("p-desc").value.trim();
-    const price = parseFloat(document.getElementById("p-price").value);
     const earning_type = earnFixedRadio.checked ? "fixed" : "commission";
+
+    const price = earning_type === "commission"
+      ? parseFloat(priceInput.value)
+      : null;
     const fixed_rate = earning_type === "fixed"
-      ? parseFloat(document.getElementById("p-fixed-rate").value)
+      ? parseFloat(fixedRateInput.value)
       : null;
     const commission_rate = earning_type === "commission"
-      ? parseFloat(document.getElementById("p-commission").value)
+      ? parseFloat(commissionInput.value)
       : null;
     const product_url = document.getElementById("p-url").value.trim() || null;
 
     if (
-      !name || !description || isNaN(price) ||
+      !name || !description ||
       (earning_type === "fixed" && isNaN(fixed_rate)) ||
-      (earning_type === "commission" && isNaN(commission_rate))
+      (earning_type === "commission" && (isNaN(price) || isNaN(commission_rate)))
     ) {
       msgEl.textContent = "Please fill in all required fields.";
       msgEl.className = "form-msg error";
@@ -326,7 +351,8 @@
 
     // ASSUMED SCHEMA — table: products
     // columns: id (uuid, default), owner_id (uuid, fk auth.users), name (text),
-    // description (text), price (numeric), earning_type (text: 'fixed' | 'commission'),
+    // description (text), price (numeric, nullable — only set for commission type),
+    // earning_type (text: 'fixed' | 'commission'),
     // fixed_rate (numeric, nullable, %), commission_rate (numeric, nullable, %),
     // product_url (text, nullable), image_url (text, not null), status (text, default 'active'),
     // created_at (timestamptz, default now())
