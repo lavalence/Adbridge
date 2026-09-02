@@ -158,8 +158,8 @@
       </div>
 
       <div class="form-field" id="fixed-field">
-        <label for="p-fixed-amount">Fixed interest amount (₦)</label>
-        <input type="number" id="p-fixed-amount" min="0" step="0.01" />
+        <label for="p-fixed-rate">Fixed interest (%)</label>
+        <input type="number" id="p-fixed-rate" min="0" max="100" step="0.1" />
       </div>
 
       <div class="form-field" id="commission-field" style="display:none;">
@@ -168,12 +168,12 @@
       </div>
 
       <div class="form-field">
-        <label for="p-url">Product URL</label>
-        <input type="url" id="p-url" placeholder="https://" required />
+        <label for="p-url">Product URL (optional)</label>
+        <input type="url" id="p-url" placeholder="https://" />
       </div>
 
       <div class="form-field">
-        <label for="p-image">Product image (optional)</label>
+        <label for="p-image">Product image</label>
         <div class="image-picker">
           <div class="image-preview" id="p-image-preview"></div>
           <div>
@@ -279,17 +279,17 @@
     const description = document.getElementById("p-desc").value.trim();
     const price = parseFloat(document.getElementById("p-price").value);
     const earning_type = earnFixedRadio.checked ? "fixed" : "commission";
-    const fixed_amount = earning_type === "fixed"
-      ? parseFloat(document.getElementById("p-fixed-amount").value)
+    const fixed_rate = earning_type === "fixed"
+      ? parseFloat(document.getElementById("p-fixed-rate").value)
       : null;
     const commission_rate = earning_type === "commission"
       ? parseFloat(document.getElementById("p-commission").value)
       : null;
-    const product_url = document.getElementById("p-url").value.trim();
+    const product_url = document.getElementById("p-url").value.trim() || null;
 
     if (
-      !name || !description || isNaN(price) || !product_url ||
-      (earning_type === "fixed" && isNaN(fixed_amount)) ||
+      !name || !description || isNaN(price) ||
+      (earning_type === "fixed" && isNaN(fixed_rate)) ||
       (earning_type === "commission" && isNaN(commission_rate))
     ) {
       msgEl.textContent = "Please fill in all required fields.";
@@ -297,36 +297,38 @@
       return;
     }
 
+    if (!selectedImageFile) {
+      msgEl.textContent = "Please choose a product image.";
+      msgEl.className = "form-msg error";
+      return;
+    }
+
     submitBtn.disabled = true;
     submitBtn.textContent = "Listing…";
 
-    let image_url = null;
+    // ASSUMED STORAGE — bucket: product-images (public)
+    // path convention: <owner_id>/<timestamp>-<filename>
+    const path = `${currentUser.id}/${Date.now()}-${selectedImageFile.name}`;
+    const { error: uploadErr } = await sb.storage
+      .from("product-images")
+      .upload(path, selectedImageFile);
 
-    if (selectedImageFile) {
-      // ASSUMED STORAGE — bucket: product-images (public)
-      // path convention: <owner_id>/<timestamp>-<filename>
-      const path = `${currentUser.id}/${Date.now()}-${selectedImageFile.name}`;
-      const { error: uploadErr } = await sb.storage
-        .from("product-images")
-        .upload(path, selectedImageFile);
-
-      if (uploadErr) {
-        submitBtn.disabled = false;
-        submitBtn.textContent = "List product";
-        msgEl.textContent = uploadErr.message || "Image upload failed. Please try again.";
-        msgEl.className = "form-msg error";
-        return;
-      }
-
-      const { data: publicUrlData } = sb.storage.from("product-images").getPublicUrl(path);
-      image_url = publicUrlData && publicUrlData.publicUrl ? publicUrlData.publicUrl : null;
+    if (uploadErr) {
+      submitBtn.disabled = false;
+      submitBtn.textContent = "List product";
+      msgEl.textContent = uploadErr.message || "Image upload failed. Please try again.";
+      msgEl.className = "form-msg error";
+      return;
     }
+
+    const { data: publicUrlData } = sb.storage.from("product-images").getPublicUrl(path);
+    const image_url = publicUrlData && publicUrlData.publicUrl ? publicUrlData.publicUrl : null;
 
     // ASSUMED SCHEMA — table: products
     // columns: id (uuid, default), owner_id (uuid, fk auth.users), name (text),
     // description (text), price (numeric), earning_type (text: 'fixed' | 'commission'),
-    // fixed_amount (numeric, nullable), commission_rate (numeric, nullable),
-    // product_url (text), image_url (text, nullable), status (text, default 'active'),
+    // fixed_rate (numeric, nullable, %), commission_rate (numeric, nullable, %),
+    // product_url (text, nullable), image_url (text, not null), status (text, default 'active'),
     // created_at (timestamptz, default now())
     const { error } = await sb.from("products").insert({
       owner_id: currentUser.id,
@@ -334,7 +336,7 @@
       description,
       price,
       earning_type,
-      fixed_amount,
+      fixed_rate,
       commission_rate,
       product_url,
       image_url,
