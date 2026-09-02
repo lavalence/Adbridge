@@ -145,6 +145,25 @@
     max-width: 560px;
     margin: 0 auto;
   }
+
+  /* Return summary for fixed-interest products */
+  .return-box {
+    display: none;
+    border: 1px solid rgba(74,222,128,0.25);
+    background: rgba(74,222,128,0.06);
+    border-radius: 10px;
+    padding: 14px 16px;
+    margin-bottom: 24px;
+  }
+  .return-box.visible { display: block; }
+  .return-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 13.5px;
+    padding: 3px 0;
+  }
+  .return-row span:first-child { color: #93A0B4; }
+  .return-row.total span:last-child { color: #4ADE80; font-weight: 600; }
 </style>
 </head>
 <body>
@@ -220,12 +239,28 @@
           <button type="button" data-amount="100000">₦100,000</button>
         </div>
 
+        <!-- Only shown for fixed-interest products: previews what the user gets back -->
+        <div class="return-box" id="return-box">
+          <div class="return-row">
+            <span>You put in</span>
+            <span id="return-principal">₦0</span>
+          </div>
+          <div class="return-row">
+            <span id="return-rate-label">Interest</span>
+            <span id="return-interest">₦0</span>
+          </div>
+          <div class="return-row total">
+            <span>You'll get back</span>
+            <span id="return-total">₦0</span>
+          </div>
+        </div>
+
         <div class="form-field">
           <label for="budget-custom">Or enter a custom amount (₦2,000 – ₦100,000)</label>
           <input type="number" id="budget-custom" min="2000" max="100000" step="1" />
         </div>
 
-        <button type="submit" class="btn btn-primary btn-block" id="submit-btn">Start campaign</button>
+        <button type="submit" class="btn btn-primary btn-block" id="submit-btn">Pay & start campaign</button>
         <div class="form-msg" id="form-msg"></div>
       </form>
     </div>
@@ -239,10 +274,19 @@
 </footer>
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="https://js.paystack.co/v1/inline.js"></script>
 <script src="supabase-client.js"></script>
 <script>
   const MIN_BUDGET = 2000;
   const MAX_BUDGET = 100000;
+
+  // TODO: replace with your real Paystack public key (starts with pk_test_ or pk_live_)
+  const PAYSTACK_PUBLIC_KEY = "pk_test_xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx";
+
+  // TODO: replace YOUR_PROJECT_REF with your actual Supabase project ref
+  // (same one used in supabase-client.js). Public key + this URL are both
+  // safe to ship to the browser — the Edge Function is what enforces security.
+  const VERIFY_PAYMENT_URL = "https://YOUR_PROJECT_REF.supabase.co/functions/v1/verify-payment";
 
   const loadingEl = document.getElementById("dash-loading");
   const contentEl = document.getElementById("dash-content");
@@ -266,8 +310,36 @@
   const budgetCustom = document.getElementById("budget-custom");
   const presetButtons = document.querySelectorAll("#budget-presets button");
 
+  const returnBox = document.getElementById("return-box");
+  const returnPrincipalEl = document.getElementById("return-principal");
+  const returnRateLabelEl = document.getElementById("return-rate-label");
+  const returnInterestEl = document.getElementById("return-interest");
+  const returnTotalEl = document.getElementById("return-total");
+
   function naira(n) {
     return "₦" + Number(n || 0).toLocaleString();
+  }
+
+  // For fixed-interest products, work out what the user gets back for a given budget.
+  // Returns null for commission-based products (no fixed payout to preview).
+  function computeReturn(budget) {
+    if (!currentProduct || currentProduct.earning_type !== "fixed") return null;
+    const rate = Number(currentProduct.fixed_rate) || 0;
+    const interest = Math.round((budget * rate) / 100);
+    return { principal: budget, interest, total: budget + interest };
+  }
+
+  function updateReturnDisplay(budget) {
+    const r = computeReturn(budget);
+    if (!r) {
+      returnBox.classList.remove("visible");
+      return;
+    }
+    returnBox.classList.add("visible");
+    returnPrincipalEl.textContent = naira(r.principal);
+    returnRateLabelEl.textContent = `Interest (${Number(currentProduct.fixed_rate)}%)`;
+    returnInterestEl.textContent = naira(r.interest);
+    returnTotalEl.textContent = naira(r.total);
   }
 
   function setBudget(amount) {
@@ -278,6 +350,7 @@
     presetButtons.forEach((btn) => {
       btn.classList.toggle("active", Number(btn.dataset.amount) === clamped);
     });
+    updateReturnDisplay(clamped);
     return clamped;
   }
 
@@ -338,8 +411,69 @@
       ? `${Number(product.fixed_rate)}% fixed interest`
       : `${Number(product.commission_rate)}% commission`;
 
+    // Refresh the return preview now that we know the product's earning type/rate
+    setBudget(Number(budgetCustom.value) || MIN_BUDGET);
+
     promoteBodyEl.style.display = "";
   })();
+
+  // After Paystack confirms payment in the browser, we DON'T write to the DB
+  // directly — the client is never trusted with that. Instead we hand the
+  // reference to the verify-payment Edge Function, which re-checks it against
+  // Paystack's API with the secret key and only then writes the campaign and
+  // (for fixed-interest products) the pending payout.
+  async function recordCampaignAfterPayment(paystackRef) {
+    const { data: { session } } = await sb.auth.getSession();
+    if (!session) {
+      throw new Error("Your session expired — please log in again.");
+    }
+
+    const res = await fetch(VERIFY_PAYMENT_URL, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${session.access_token}`,
+      },
+      body: JSON.stringify({
+        reference: paystackRef,
+        product_id: currentProduct.id,
+      }),
+    });
+
+    const result = await res.json().catch(() => ({}));
+
+    if (!res.ok || result.error) {
+      throw new Error(result.error || "Couldn't confirm your payment. Please contact support with your payment reference.");
+    }
+
+    return result;
+  }
+
+  function payWithPaystack(budget) {
+    return new Promise((resolve, reject) => {
+      if (typeof PaystackPop === "undefined") {
+        reject(new Error("Payment provider failed to load. Please refresh and try again."));
+        return;
+      }
+      const handler = PaystackPop.setup({
+        key: PAYSTACK_PUBLIC_KEY,
+        email: currentUser.email,
+        amount: Math.round(budget * 100), // kobo
+        currency: "NGN",
+        metadata: {
+          product_id: currentProduct.id,
+          earner_id: currentUser.id,
+        },
+        callback: function (response) {
+          resolve(response.reference);
+        },
+        onClose: function () {
+          reject(new Error("Payment window closed before completing payment."));
+        },
+      });
+      handler.openIframe();
+    });
+  }
 
   form.addEventListener("submit", async (e) => {
     e.preventDefault();
@@ -355,32 +489,23 @@
     }
 
     submitBtn.disabled = true;
-    submitBtn.textContent = "Starting…";
+    submitBtn.textContent = "Waiting for payment…";
 
-    // ASSUMED SCHEMA — table: campaigns
-    // columns: id (uuid, default), earner_id (uuid, fk auth.users),
-    // product_id (uuid, fk products.id), status (text, default 'active'),
-    // budget (numeric — the amount this earner is putting behind the campaign),
-    // created_at (timestamptz, default now())
-    const { error } = await sb.from("campaigns").insert({
-      earner_id: currentUser.id,
-      product_id: currentProduct.id,
-      status: "active",
-      budget,
-    });
+    try {
+      const reference = await payWithPaystack(budget);
 
-    submitBtn.disabled = false;
-    submitBtn.textContent = "Start campaign";
+      submitBtn.textContent = "Confirming payment…";
+      await recordCampaignAfterPayment(reference);
 
-    if (error) {
-      msgEl.textContent = error.message || "Couldn't start the campaign. Please try again.";
+      msgEl.textContent = "Payment confirmed. Campaign started — redirecting to your dashboard…";
+      msgEl.className = "form-msg success";
+      setTimeout(() => { window.location.href = "dashboard.html"; }, 1200);
+    } catch (err) {
+      msgEl.textContent = (err && err.message) || "Couldn't start the campaign. Please try again.";
       msgEl.className = "form-msg error";
-      return;
+      submitBtn.disabled = false;
+      submitBtn.textContent = "Pay & start campaign";
     }
-
-    msgEl.textContent = "Campaign started. Redirecting to your dashboard…";
-    msgEl.className = "form-msg success";
-    setTimeout(() => { window.location.href = "dashboard.html"; }, 1200);
   });
 
   logoutBtn.addEventListener("click", async () => {
