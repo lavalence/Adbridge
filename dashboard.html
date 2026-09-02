@@ -24,6 +24,25 @@
   .empty-state p { margin: 0 0 16px; }
   .dash-loading { padding: 60px 0; text-align: center; color: #93A0B4; }
   .user-chip { color: #93A0B4; font-size: 14px; }
+  .section-head-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+  .section-actions { display: flex; gap: 10px; flex-shrink: 0; }
+  .campaign-group { margin-top: 8px; }
+  .campaign-group:first-of-type { margin-top: 0; }
+  .campaign-group h4 {
+    font-size: 13px;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    color: #93A0B4;
+    margin: 24px 0 8px;
+    font-weight: 600;
+  }
+  .campaign-group:first-of-type h4 { margin-top: 0; }
   .campaign-row {
     display: flex;
     justify-content: space-between;
@@ -33,7 +52,6 @@
   }
   .campaign-row:last-child { border-bottom: none; }
   .campaign-row .c-name { font-weight: 600; }
-  .campaign-row .c-role { color: #93A0B4; font-size: 13px; margin-left: 8px; font-weight: 400; }
   .campaign-row .c-status {
     font-size: 12px;
     padding: 3px 10px;
@@ -44,6 +62,11 @@
   }
   .campaign-row .c-status.paused,
   .campaign-row .c-status.completed { background: rgba(147,160,180,0.14); color: #93A0B4; }
+  .subgroup-empty {
+    color: #93A0B4;
+    font-size: 13px;
+    padding: 8px 0 14px;
+  }
 </style>
 </head>
 <body>
@@ -107,17 +130,32 @@
   </section>
 
   <section class="wrap section-border">
-    <div class="section-head">
-      <h2>Your campaigns</h2>
-      <p>Products you're promoting or have listed.</p>
+    <div class="section-head-row">
+      <div class="section-head">
+        <h2>Your campaigns</h2>
+        <p>Products you're promoting or have listed.</p>
+      </div>
+      <div class="section-actions">
+        <a href="product.html" class="btn btn-ghost">Add a product</a>
+        <a href="browse.html" class="btn btn-ghost">Browse products to promote</a>
+      </div>
     </div>
     <div id="campaigns-loading" class="dash-loading" style="padding:20px 0;">Loading campaigns…</div>
     <div class="empty-state" id="campaigns-empty" style="display:none;">
-      <p>You don't have any campaigns yet.</p>
-      <a href="product.html" class="btn btn-ghost">Add a product</a>
-      <a href="browse.html" class="btn btn-ghost">Browse products to promote</a>
+      <p>You don't have any campaigns yet — add a product to list, or browse products to promote above.</p>
     </div>
-    <div id="campaigns-list" style="display:none;"></div>
+    <div id="campaigns-list" style="display:none;">
+      <div class="campaign-group">
+        <h4>Products you listed</h4>
+        <div id="owned-list"></div>
+        <p class="subgroup-empty" id="owned-empty" style="display:none;">Nothing listed yet.</p>
+      </div>
+      <div class="campaign-group">
+        <h4>Products you're promoting</h4>
+        <div id="promoting-list"></div>
+        <p class="subgroup-empty" id="promoting-empty" style="display:none;">Not promoting anything yet.</p>
+      </div>
+    </div>
   </section>
 
 </div>
@@ -143,6 +181,10 @@
   const campaignsLoadingEl = document.getElementById("campaigns-loading");
   const campaignsEmptyEl = document.getElementById("campaigns-empty");
   const campaignsListEl = document.getElementById("campaigns-list");
+  const ownedListEl = document.getElementById("owned-list");
+  const ownedEmptyEl = document.getElementById("owned-empty");
+  const promotingListEl = document.getElementById("promoting-list");
+  const promotingEmptyEl = document.getElementById("promoting-empty");
 
   function naira(n) {
     return "₦" + Number(n || 0).toLocaleString(undefined, { maximumFractionDigits: 2 });
@@ -152,6 +194,15 @@
     const div = document.createElement("div");
     div.textContent = str;
     return div.innerHTML;
+  }
+
+  function renderRow(r) {
+    return `
+      <div class="campaign-row">
+        <span class="c-name">${escapeHtml(r.name)}</span>
+        <span class="c-status ${escapeHtml(r.status)}">${escapeHtml(r.status)}</span>
+      </div>
+    `;
   }
 
   (async () => {
@@ -208,54 +259,48 @@
 
     campaignsLoadingEl.style.display = "none";
 
-    const rows = [];
+    const ownedRows = (!ownedErr && ownedProducts ? ownedProducts : []).map((p) => ({
+      name: p.name,
+      status: p.status,
+      created_at: p.created_at,
+    }));
 
-    if (!ownedErr && ownedProducts) {
-      ownedProducts.forEach((p) => {
-        rows.push({
-          name: p.name,
-          role: "Listed",
-          status: p.status,
-          created_at: p.created_at,
-        });
-      });
-    }
+    const promotingRows = (!promotingErr && promoting ? promoting : []).map((c) => ({
+      name: (c.products && c.products.name) || "Unknown product",
+      status: c.status,
+      created_at: c.created_at,
+    }));
 
-    if (!promotingErr && promoting) {
-      promoting.forEach((c) => {
-        rows.push({
-          name: (c.products && c.products.name) || "Unknown product",
-          role: "Promoting",
-          status: c.status,
-          created_at: c.created_at,
-        });
-      });
-    }
+    ownedRows.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+    promotingRows.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
 
-    rows.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-
-    const activeCount = rows.filter((r) => r.status === "active").length;
+    const activeCount =
+      ownedRows.filter((r) => r.status === "active").length +
+      promotingRows.filter((r) => r.status === "active").length;
     statCampaignsEl.textContent = activeCount;
 
-    if (rows.length === 0) {
+    if (ownedRows.length === 0 && promotingRows.length === 0) {
       campaignsEmptyEl.style.display = "";
       campaignsListEl.style.display = "none";
     } else {
       campaignsEmptyEl.style.display = "none";
       campaignsListEl.style.display = "";
-      campaignsListEl.innerHTML = rows
-        .map(
-          (r) => `
-            <div class="campaign-row">
-              <div>
-                <span class="c-name">${escapeHtml(r.name)}</span>
-                <span class="c-role">${escapeHtml(r.role)}</span>
-              </div>
-              <span class="c-status ${escapeHtml(r.status)}">${escapeHtml(r.status)}</span>
-            </div>
-          `
-        )
-        .join("");
+
+      if (ownedRows.length === 0) {
+        ownedListEl.innerHTML = "";
+        ownedEmptyEl.style.display = "";
+      } else {
+        ownedEmptyEl.style.display = "none";
+        ownedListEl.innerHTML = ownedRows.map(renderRow).join("");
+      }
+
+      if (promotingRows.length === 0) {
+        promotingListEl.innerHTML = "";
+        promotingEmptyEl.style.display = "";
+      } else {
+        promotingEmptyEl.style.display = "none";
+        promotingListEl.innerHTML = promotingRows.map(renderRow).join("");
+      }
     }
   })();
 
