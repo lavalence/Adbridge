@@ -58,11 +58,17 @@
     display: flex;
     justify-content: space-between;
     align-items: center;
+    gap: 12px;
     padding: 14px 0;
     border-bottom: 1px solid rgba(233,236,241,0.1);
+    cursor: pointer;
+    border-radius: 8px;
+    transition: background .12s ease;
   }
+  .campaign-row:hover { background: rgba(233,236,241,0.03); }
   .campaign-row:last-child { border-bottom: none; }
   .campaign-row .c-name { font-weight: 600; }
+  .campaign-row .c-right { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
   .campaign-row .c-status {
     font-size: 12px;
     padding: 3px 10px;
@@ -73,11 +79,47 @@
   }
   .campaign-row .c-status.paused,
   .campaign-row .c-status.completed { background: rgba(147,160,180,0.14); color: #93A0B4; }
+  .c-delete {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    border: none;
+    background: transparent;
+    color: #93A0B4;
+    cursor: pointer;
+    transition: background .12s ease, color .12s ease;
+  }
+  .c-delete:hover { background: rgba(255,107,107,0.12); color: #FF6B6B; }
+  .c-delete svg { width: 16px; height: 16px; pointer-events: none; }
+  .c-delete:disabled { opacity: 0.4; cursor: default; pointer-events: none; }
   .subgroup-empty {
     color: #93A0B4;
     font-size: 13px;
     padding: 8px 0 14px;
   }
+  .see-all-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    background: none;
+    border: none;
+    color: #FFB020;
+    font-family: "Inter", sans-serif;
+    font-size: 13px;
+    font-weight: 600;
+    padding: 8px 0 4px;
+    cursor: pointer;
+  }
+  .see-all-btn:hover { text-decoration: underline; }
+  .see-all-btn svg {
+    width: 13px;
+    height: 13px;
+    transition: transform .15s ease;
+  }
+  .see-all-btn.expanded svg { transform: rotate(180deg); }
 </style>
 </head>
 <body>
@@ -144,7 +186,7 @@
     <div class="section-head-row">
       <div class="section-head">
         <h2>Your campaigns</h2>
-        <p>Products you're promoting or have listed.</p>
+        <p>Products you're promoting or have listed. Click one to view it.</p>
       </div>
       <div class="section-actions">
         <a href="product.html" class="btn btn-ghost">Add a product</a>
@@ -197,6 +239,29 @@
   const promotingListEl = document.getElementById("promoting-list");
   const promotingEmptyEl = document.getElementById("promoting-empty");
 
+  const TRASH_ICON = `
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M3 6h18"/>
+      <path d="M8 6V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
+      <path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/>
+      <path d="M10 11v6"/><path d="M14 11v6"/>
+    </svg>
+  `;
+
+  const CHEVRON_ICON = `
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M6 9l6 6 6-6"/>
+    </svg>
+  `;
+
+  const DEFAULT_VISIBLE_COUNT = 1;
+
+  let currentUserId = null;
+  let ownedRowsData = [];
+  let promotingRowsData = [];
+  let ownedExpanded = false;
+  let promotingExpanded = false;
+
   function naira(n) {
     return "₦" + Number(n || 0).toLocaleString(undefined, { maximumFractionDigits: 2 });
   }
@@ -207,13 +272,200 @@
     return div.innerHTML;
   }
 
+  // r: { id, name, status, product_id, deletable }
+  // - id: product id (owned rows) or campaign id (promoting rows) — used for delete
+  // - product_id: always the product id — used for the link/navigation target
   function renderRow(r) {
+    const deleteBtn = r.deletable
+      ? `<button type="button" class="c-delete" data-delete-id="${escapeHtml(r.id)}" title="Delete product" aria-label="Delete product">${TRASH_ICON}</button>`
+      : "";
     return `
-      <div class="campaign-row">
+      <div class="campaign-row" data-product-id="${escapeHtml(r.product_id)}" tabindex="0" role="link">
         <span class="c-name">${escapeHtml(r.name)}</span>
-        <span class="c-status ${escapeHtml(r.status)}">${escapeHtml(r.status)}</span>
+        <span class="c-right">
+          <span class="c-status ${escapeHtml(r.status)}">${escapeHtml(r.status)}</span>
+          ${deleteBtn}
+        </span>
       </div>
     `;
+  }
+
+  function goToProduct(productId) {
+    if (!productId) return;
+    window.location.href = `product.html?id=${encodeURIComponent(productId)}`;
+  }
+
+  // Renders a group's rows (already sorted newest-first). Shows just the
+  // most recent one by default; if there's more, appends a "See all" toggle
+  // that expands/collapses the rest in place.
+  function renderGroup(rows, expanded, groupKey) {
+    const visibleRows = expanded ? rows : rows.slice(0, DEFAULT_VISIBLE_COUNT);
+    const rowsHtml = visibleRows.map(renderRow).join("");
+    const hiddenCount = rows.length - DEFAULT_VISIBLE_COUNT;
+
+    let toggleHtml = "";
+    if (hiddenCount > 0) {
+      toggleHtml = expanded
+        ? `<button type="button" class="see-all-btn expanded" data-toggle-group="${groupKey}">Show less ${CHEVRON_ICON}</button>`
+        : `<button type="button" class="see-all-btn" data-toggle-group="${groupKey}">See all (${rows.length}) ${CHEVRON_ICON}</button>`;
+    }
+
+    return rowsHtml + toggleHtml;
+  }
+
+  // Event delegation: clicking a row navigates to the product; clicking the
+  // trash icon deletes instead (and never triggers the row navigation).
+  function wireRowInteractions(container) {
+    container.addEventListener("click", (e) => {
+      const toggleBtn = e.target.closest(".see-all-btn");
+      if (toggleBtn) {
+        e.stopPropagation();
+        if (toggleBtn.dataset.toggleGroup === "owned") {
+          ownedExpanded = !ownedExpanded;
+        } else {
+          promotingExpanded = !promotingExpanded;
+        }
+        renderCampaignGroups();
+        return;
+      }
+      const deleteBtn = e.target.closest(".c-delete");
+      if (deleteBtn) {
+        e.stopPropagation();
+        handleDeleteProduct(deleteBtn.dataset.deleteId, deleteBtn);
+        return;
+      }
+      const row = e.target.closest(".campaign-row");
+      if (row) goToProduct(row.dataset.productId);
+    });
+    container.addEventListener("keydown", (e) => {
+      if (e.key !== "Enter" && e.key !== " ") return;
+      const row = e.target.closest(".campaign-row");
+      if (row) {
+        e.preventDefault();
+        goToProduct(row.dataset.productId);
+      }
+    });
+  }
+
+  wireRowInteractions(ownedListEl);
+  wireRowInteractions(promotingListEl);
+
+  async function handleDeleteProduct(productId, btnEl) {
+    if (!productId) return;
+    if (!window.confirm("Delete this product? This can't be undone.")) return;
+
+    btnEl.disabled = true;
+
+    // Guard: don't let a listing disappear out from under promoters who've
+    // already paid into a campaign for it — block the delete instead.
+    const { count, error: countErr } = await sb
+      .from("campaigns")
+      .select("id", { count: "exact", head: true })
+      .eq("product_id", productId);
+
+    if (countErr) {
+      alert(countErr.message || "Couldn't check this product's campaigns. Please try again.");
+      btnEl.disabled = false;
+      return;
+    }
+
+    if (count > 0) {
+      alert("This product has active promoters and can't be deleted. Pause it instead.");
+      btnEl.disabled = false;
+      return;
+    }
+
+    const { error: deleteErr } = await sb
+      .from("products")
+      .delete()
+      .eq("id", productId)
+      .eq("owner_id", currentUserId);
+
+    if (deleteErr) {
+      alert(deleteErr.message || "Couldn't delete this product. Please try again.");
+      btnEl.disabled = false;
+      return;
+    }
+
+    await loadCampaigns();
+  }
+
+  function renderCampaignGroups() {
+    if (ownedRowsData.length === 0) {
+      ownedListEl.innerHTML = "";
+      ownedEmptyEl.style.display = "";
+    } else {
+      ownedEmptyEl.style.display = "none";
+      ownedListEl.innerHTML = renderGroup(ownedRowsData, ownedExpanded, "owned");
+    }
+
+    if (promotingRowsData.length === 0) {
+      promotingListEl.innerHTML = "";
+      promotingEmptyEl.style.display = "";
+    } else {
+      promotingEmptyEl.style.display = "none";
+      promotingListEl.innerHTML = renderGroup(promotingRowsData, promotingExpanded, "promoting");
+    }
+  }
+
+  async function loadCampaigns() {
+    campaignsLoadingEl.style.display = "";
+    campaignsEmptyEl.style.display = "none";
+    campaignsListEl.style.display = "none";
+
+    // ---- Campaigns: products listed by this user + products this user is promoting ----
+    // ASSUMED SCHEMA:
+    //   table: products  — id, owner_id, name, status ('active'|'paused'), created_at
+    //   table: campaigns — id, earner_id, product_id, status ('active'|'completed'), created_at
+    //     with a foreign key from campaigns.product_id -> products.id (so we can join product name)
+    const [{ data: ownedProducts, error: ownedErr }, { data: promoting, error: promotingErr }] =
+      await Promise.all([
+        sb.from("products").select("id, name, status, created_at").eq("owner_id", currentUserId),
+        sb
+          .from("campaigns")
+          .select("id, status, created_at, product_id, products ( name )")
+          .eq("earner_id", currentUserId),
+      ]);
+
+    campaignsLoadingEl.style.display = "none";
+
+    const ownedRows = (!ownedErr && ownedProducts ? ownedProducts : []).map((p) => ({
+      id: p.id,
+      product_id: p.id,
+      name: p.name,
+      status: p.status,
+      created_at: p.created_at,
+      deletable: true,
+    }));
+
+    const promotingRows = (!promotingErr && promoting ? promoting : []).map((c) => ({
+      id: c.id,
+      product_id: c.product_id,
+      name: (c.products && c.products.name) || "Unknown product",
+      status: c.status,
+      created_at: c.created_at,
+      deletable: false,
+    }));
+
+    ownedRows.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+    promotingRows.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+
+    ownedRowsData = ownedRows;
+    promotingRowsData = promotingRows;
+
+    const activeCount =
+      ownedRows.filter((r) => r.status === "active").length +
+      promotingRows.filter((r) => r.status === "active").length;
+    statCampaignsEl.textContent = activeCount;
+
+    if (ownedRows.length === 0 && promotingRows.length === 0) {
+      campaignsEmptyEl.style.display = "";
+      campaignsListEl.style.display = "none";
+    } else {
+      campaignsEmptyEl.style.display = "none";
+      campaignsListEl.style.display = "";
+      renderCampaignGroups();
+    }
   }
 
   (async () => {
@@ -225,6 +477,7 @@
     }
 
     const user = session.user;
+    currentUserId = user.id;
     const fullName = user.user_metadata && user.user_metadata.full_name;
 
     welcomeHeading.textContent = fullName ? `Welcome back, ${fullName.split(" ")[0]}` : "Welcome back";
@@ -254,65 +507,7 @@
       statPendingEl.textContent = naira(pending);
     }
 
-    // ---- Campaigns: products listed by this user + products this user is promoting ----
-    // ASSUMED SCHEMA:
-    //   table: products  — id, owner_id, name, status ('active'|'paused'), created_at
-    //   table: campaigns — id, earner_id, product_id, status ('active'|'completed'), created_at
-    //     with a foreign key from campaigns.product_id -> products.id (so we can join product name)
-    const [{ data: ownedProducts, error: ownedErr }, { data: promoting, error: promotingErr }] =
-      await Promise.all([
-        sb.from("products").select("id, name, status, created_at").eq("owner_id", user.id),
-        sb
-          .from("campaigns")
-          .select("id, status, created_at, products ( name )")
-          .eq("earner_id", user.id),
-      ]);
-
-    campaignsLoadingEl.style.display = "none";
-
-    const ownedRows = (!ownedErr && ownedProducts ? ownedProducts : []).map((p) => ({
-      name: p.name,
-      status: p.status,
-      created_at: p.created_at,
-    }));
-
-    const promotingRows = (!promotingErr && promoting ? promoting : []).map((c) => ({
-      name: (c.products && c.products.name) || "Unknown product",
-      status: c.status,
-      created_at: c.created_at,
-    }));
-
-    ownedRows.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-    promotingRows.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
-
-    const activeCount =
-      ownedRows.filter((r) => r.status === "active").length +
-      promotingRows.filter((r) => r.status === "active").length;
-    statCampaignsEl.textContent = activeCount;
-
-    if (ownedRows.length === 0 && promotingRows.length === 0) {
-      campaignsEmptyEl.style.display = "";
-      campaignsListEl.style.display = "none";
-    } else {
-      campaignsEmptyEl.style.display = "none";
-      campaignsListEl.style.display = "";
-
-      if (ownedRows.length === 0) {
-        ownedListEl.innerHTML = "";
-        ownedEmptyEl.style.display = "";
-      } else {
-        ownedEmptyEl.style.display = "none";
-        ownedListEl.innerHTML = ownedRows.map(renderRow).join("");
-      }
-
-      if (promotingRows.length === 0) {
-        promotingListEl.innerHTML = "";
-        promotingEmptyEl.style.display = "";
-      } else {
-        promotingEmptyEl.style.display = "none";
-        promotingListEl.innerHTML = promotingRows.map(renderRow).join("");
-      }
-    }
+    await loadCampaigns();
   })();
 
   logoutBtn.addEventListener("click", async () => {
