@@ -61,11 +61,7 @@
     gap: 12px;
     padding: 14px 0;
     border-bottom: 1px solid rgba(233,236,241,0.1);
-    cursor: pointer;
-    border-radius: 8px;
-    transition: background .12s ease;
   }
-  .campaign-row:hover { background: rgba(233,236,241,0.03); }
   .campaign-row:last-child { border-bottom: none; }
   .campaign-row .c-name { font-weight: 600; }
   .campaign-row .c-right { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
@@ -186,7 +182,7 @@
     <div class="section-head-row">
       <div class="section-head">
         <h2>Your campaigns</h2>
-        <p>Products you're promoting or have listed. Click one to view it.</p>
+        <p>Products you're promoting or have listed.</p>
       </div>
       <div class="section-actions">
         <a href="product.html" class="btn btn-ghost">Add a product</a>
@@ -272,27 +268,23 @@
     return div.innerHTML;
   }
 
-  // r: { id, name, status, product_id, deletable }
+  // r: { id, name, status, statusLabel, product_id, deletable }
   // - id: product id (owned rows) or campaign id (promoting rows) — used for delete
-  // - product_id: always the product id — used for the link/navigation target
+  // - status: underlying status, drives the pill color
+  // - statusLabel: the text actually shown (e.g. promoted "active" campaigns read "Participated")
   function renderRow(r) {
     const deleteBtn = r.deletable
       ? `<button type="button" class="c-delete" data-delete-id="${escapeHtml(r.id)}" title="Delete product" aria-label="Delete product">${TRASH_ICON}</button>`
       : "";
     return `
-      <div class="campaign-row" data-product-id="${escapeHtml(r.product_id)}" tabindex="0" role="link">
+      <div class="campaign-row">
         <span class="c-name">${escapeHtml(r.name)}</span>
         <span class="c-right">
-          <span class="c-status ${escapeHtml(r.status)}">${escapeHtml(r.status)}</span>
+          <span class="c-status ${escapeHtml(r.status)}">${escapeHtml(r.statusLabel)}</span>
           ${deleteBtn}
         </span>
       </div>
     `;
-  }
-
-  function goToProduct(productId) {
-    if (!productId) return;
-    window.location.href = `product.html?id=${encodeURIComponent(productId)}`;
   }
 
   // Renders a group's rows (already sorted newest-first). Shows just the
@@ -313,13 +305,13 @@
     return rowsHtml + toggleHtml;
   }
 
-  // Event delegation: clicking a row navigates to the product; clicking the
-  // trash icon deletes instead (and never triggers the row navigation).
+  // Event delegation: clicking the "See all" toggle expands/collapses the
+  // group; clicking the trash icon deletes the product. Rows themselves are
+  // no longer clickable — the delete button lives right in the row now.
   function wireRowInteractions(container) {
     container.addEventListener("click", (e) => {
       const toggleBtn = e.target.closest(".see-all-btn");
       if (toggleBtn) {
-        e.stopPropagation();
         if (toggleBtn.dataset.toggleGroup === "owned") {
           ownedExpanded = !ownedExpanded;
         } else {
@@ -330,19 +322,7 @@
       }
       const deleteBtn = e.target.closest(".c-delete");
       if (deleteBtn) {
-        e.stopPropagation();
         handleDeleteProduct(deleteBtn.dataset.deleteId, deleteBtn);
-        return;
-      }
-      const row = e.target.closest(".campaign-row");
-      if (row) goToProduct(row.dataset.productId);
-    });
-    container.addEventListener("keydown", (e) => {
-      if (e.key !== "Enter" && e.key !== " ") return;
-      const row = e.target.closest(".campaign-row");
-      if (row) {
-        e.preventDefault();
-        goToProduct(row.dataset.productId);
       }
     });
   }
@@ -434,6 +414,7 @@
       product_id: p.id,
       name: p.name,
       status: p.status,
+      statusLabel: p.status,
       created_at: p.created_at,
       deletable: true,
     }));
@@ -443,6 +424,9 @@
       product_id: c.product_id,
       name: (c.products && c.products.name) || "Unknown product",
       status: c.status,
+      // "Active" doesn't tell a promoter anything about when their campaign
+      // ends, so it reads as "Participated" instead — still green, same status underneath.
+      statusLabel: c.status === "active" ? "participated" : c.status,
       created_at: c.created_at,
       deletable: false,
     }));
