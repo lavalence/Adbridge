@@ -22,6 +22,26 @@
   .empty-state p { margin: 0 0 16px; }
   .dash-loading { padding: 60px 0; text-align: center; color: #93A0B4; }
   .user-chip { color: #93A0B4; font-size: 14px; }
+  .campaign-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 14px 0;
+    border-bottom: 1px solid rgba(233,236,241,0.1);
+  }
+  .campaign-row:last-child { border-bottom: none; }
+  .campaign-row .c-name { font-weight: 600; }
+  .campaign-row .c-role { color: #93A0B4; font-size: 13px; margin-left: 8px; font-weight: 400; }
+  .campaign-row .c-status {
+    font-size: 12px;
+    padding: 3px 10px;
+    border-radius: 999px;
+    background: rgba(74,222,128,0.12);
+    color: #4ADE80;
+    text-transform: capitalize;
+  }
+  .campaign-row .c-status.paused,
+  .campaign-row .c-status.completed { background: rgba(147,160,180,0.14); color: #93A0B4; }
 </style>
 </head>
 <body>
@@ -82,11 +102,13 @@
       <h2>Your campaigns</h2>
       <p>Products you're promoting or have listed.</p>
     </div>
-    <div class="empty-state" id="campaigns-empty">
+    <div id="campaigns-loading" class="dash-loading" style="padding:20px 0;">Loading campaigns…</div>
+    <div class="empty-state" id="campaigns-empty" style="display:none;">
       <p>You don't have any campaigns yet.</p>
-      <a href="index.html#advertisers" class="btn btn-ghost">Add a product</a>
-      <a href="index.html#earners" class="btn btn-ghost">Browse products to promote</a>
+      <a href="product.html" class="btn btn-ghost">Add a product</a>
+      <a href="browse.html" class="btn btn-ghost">Browse products to promote</a>
     </div>
+    <div id="campaigns-list" style="display:none;"></div>
   </section>
 
 </div>
@@ -105,6 +127,24 @@
   const userChip = document.getElementById("user-chip");
   const logoutBtn = document.getElementById("logout-btn");
 
+  const statBalanceEl = document.getElementById("stat-balance");
+  const statPendingEl = document.getElementById("stat-pending");
+  const statCampaignsEl = document.getElementById("stat-campaigns");
+
+  const campaignsLoadingEl = document.getElementById("campaigns-loading");
+  const campaignsEmptyEl = document.getElementById("campaigns-empty");
+  const campaignsListEl = document.getElementById("campaigns-list");
+
+  function naira(n) {
+    return "₦" + Number(n || 0).toLocaleString(undefined, { maximumFractionDigits: 2 });
+  }
+
+  function escapeHtml(str) {
+    const div = document.createElement("div");
+    div.textContent = str;
+    return div.innerHTML;
+  }
+
   (async () => {
     const { data: { session } } = await sb.auth.getSession();
 
@@ -122,8 +162,92 @@
     loadingEl.style.display = "none";
     contentEl.style.display = "";
 
-    // TODO: once campaigns/payouts tables exist, replace the placeholder
-    // stat values and empty state above with real queries against them.
+    // ---- Wallet balance / pending review ----
+    // ASSUMED SCHEMA — table: payouts
+    // columns: id, user_id (uuid, fk auth.users), amount (numeric),
+    // status (text: 'approved' | 'pending'), created_at
+    const { data: payouts, error: payoutsErr } = await sb
+      .from("payouts")
+      .select("amount, status")
+      .eq("user_id", user.id);
+
+    if (!payoutsErr && payouts) {
+      let balance = 0;
+      let pending = 0;
+      payouts.forEach((row) => {
+        const amt = Number(row.amount) || 0;
+        if (row.status === "approved") balance += amt;
+        else if (row.status === "pending") pending += amt;
+      });
+      statBalanceEl.textContent = naira(balance);
+      statPendingEl.textContent = naira(pending);
+    }
+
+    // ---- Campaigns: products listed by this user + products this user is promoting ----
+    // ASSUMED SCHEMA:
+    //   table: products  — id, owner_id, name, status ('active'|'paused'), created_at
+    //   table: campaigns — id, earner_id, product_id, status ('active'|'completed'), created_at
+    //     with a foreign key from campaigns.product_id -> products.id (so we can join product name)
+    const [{ data: ownedProducts, error: ownedErr }, { data: promoting, error: promotingErr }] =
+      await Promise.all([
+        sb.from("products").select("id, name, status, created_at").eq("owner_id", user.id),
+        sb
+          .from("campaigns")
+          .select("id, status, created_at, products ( name )")
+          .eq("earner_id", user.id),
+      ]);
+
+    campaignsLoadingEl.style.display = "none";
+
+    const rows = [];
+
+    if (!ownedErr && ownedProducts) {
+      ownedProducts.forEach((p) => {
+        rows.push({
+          name: p.name,
+          role: "Listed",
+          status: p.status,
+          created_at: p.created_at,
+        });
+      });
+    }
+
+    if (!promotingErr && promoting) {
+      promoting.forEach((c) => {
+        rows.push({
+          name: (c.products && c.products.name) || "Unknown product",
+          role: "Promoting",
+          status: c.status,
+          created_at: c.created_at,
+        });
+      });
+    }
+
+    rows.sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+
+    const activeCount = rows.filter((r) => r.status === "active").length;
+    statCampaignsEl.textContent = activeCount;
+
+    if (rows.length === 0) {
+      campaignsEmptyEl.style.display = "";
+      campaignsListEl.style.display = "none";
+    } else {
+      campaignsEmptyEl.style.display = "none";
+      campaignsListEl.style.display = "";
+      campaignsListEl.innerHTML = rows
+        .map(
+          (r) => `
+            <div class="campaign-row">
+              <div>
+                <span class="c-name">${escapeHtml(r.name)}</span>
+                <span class="c-role">${escapeHtml(r.role)}</span>
+              </div>
+              <span class="c-status ${escapeHtml(r.status)}">${escapeHtml(r.status)}</span>
+            </div>
+          `
+        )
+        .join("");
+    }
   })();
 
   logoutBtn.addEventListener("click", async () => {

@@ -1,0 +1,251 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Browse Products — ADbridge</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="styles.css" />
+<style>
+  /* Page-only additions — scoped here since these are new patterns not in styles.css */
+  .product-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+    gap: 20px;
+  }
+  .product-card {
+    border: 1px solid rgba(233,236,241,0.14);
+    border-radius: 12px;
+    padding: 18px;
+    display: flex;
+    flex-direction: column;
+  }
+  .product-card img {
+    width: 100%;
+    height: 140px;
+    object-fit: cover;
+    border-radius: 8px;
+    margin-bottom: 12px;
+    background: rgba(233,236,241,0.06);
+  }
+  .product-card h3 { margin: 0 0 6px; font-size: 16px; }
+  .product-card p { margin: 0 0 12px; color: #93A0B4; font-size: 13px; flex-grow: 1; }
+  .product-meta { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 12px; }
+  .product-meta .price { color: #E9ECF1; font-weight: 600; }
+  .product-meta .commission { color: #FFB020; }
+  .empty-state {
+    border: 1px dashed rgba(233,236,241,0.18);
+    border-radius: 12px;
+    padding: 32px 24px;
+    text-align: center;
+    color: #93A0B4;
+  }
+  .dash-loading { padding: 60px 0; text-align: center; color: #93A0B4; }
+  .user-chip { color: #93A0B4; font-size: 14px; }
+  .search-row { margin-bottom: 24px; }
+  .search-row input {
+    width: 100%;
+    box-sizing: border-box;
+    background: rgba(233,236,241,0.04);
+    border: 1px solid rgba(233,236,241,0.18);
+    border-radius: 8px;
+    padding: 10px 12px;
+    color: #E9ECF1;
+    font-family: "Inter", sans-serif;
+    font-size: 14px;
+  }
+</style>
+</head>
+<body>
+
+<nav class="nav">
+  <div class="wrap">
+    <a href="index.html" class="brand">
+      <span class="brand-mark">
+        <svg viewBox="0 0 26 18" fill="none">
+          <path d="M1 15 C 6 4, 20 4, 25 15" stroke="#FFB020" stroke-width="2" stroke-linecap="round"/>
+          <circle cx="1" cy="15" r="2" fill="#E9ECF1"/>
+          <circle cx="25" cy="15" r="2" fill="#E9ECF1"/>
+        </svg>
+      </span>
+      ADbridge
+    </a>
+    <div class="nav-links"></div>
+    <div class="nav-links">
+      <span class="user-chip" id="user-chip"></span>
+      <button type="button" class="btn btn-ghost" id="logout-btn">Log out</button>
+    </div>
+  </div>
+</nav>
+
+<div id="dash-loading" class="wrap dash-loading">Loading…</div>
+
+<div id="dash-content" style="display:none;">
+
+  <header class="wrap section-border">
+    <div class="section-head">
+      <h2>Browse products</h2>
+      <p>Pick a product to promote and start earning commission.</p>
+    </div>
+  </header>
+
+  <section class="wrap">
+    <div class="search-row">
+      <input type="text" id="search-input" placeholder="Search products…" />
+    </div>
+    <div id="grid-loading" class="dash-loading" style="padding:30px 0;">Loading products…</div>
+    <div class="empty-state" id="products-empty" style="display:none;">
+      <p>No products available to promote right now.</p>
+    </div>
+    <div class="product-grid" id="product-grid"></div>
+  </section>
+
+</div>
+
+<footer class="wrap">
+  <span>© 2026 ADbridge</span>
+  <span>Built on a verified payout pipeline</span>
+</footer>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="supabase-client.js"></script>
+<script>
+  const loadingEl = document.getElementById("dash-loading");
+  const contentEl = document.getElementById("dash-content");
+  const userChip = document.getElementById("user-chip");
+  const logoutBtn = document.getElementById("logout-btn");
+  const gridEl = document.getElementById("product-grid");
+  const gridLoadingEl = document.getElementById("grid-loading");
+  const emptyEl = document.getElementById("products-empty");
+  const searchInput = document.getElementById("search-input");
+
+  let currentUser = null;
+  let allProducts = [];
+  let myCampaignProductIds = new Set();
+
+  function escapeHtml(str) {
+    const div = document.createElement("div");
+    div.textContent = str;
+    return div.innerHTML;
+  }
+
+  function render(products) {
+    gridEl.innerHTML = "";
+
+    if (products.length === 0) {
+      emptyEl.style.display = "";
+      return;
+    }
+    emptyEl.style.display = "none";
+
+    products.forEach((p) => {
+      const card = document.createElement("div");
+      card.className = "product-card";
+
+      const alreadyPromoting = myCampaignProductIds.has(p.id);
+
+      card.innerHTML = `
+        ${p.image_url ? `<img src="${escapeHtml(p.image_url)}" alt="${escapeHtml(p.name)}" />` : ""}
+        <h3>${escapeHtml(p.name)}</h3>
+        <p>${escapeHtml(p.description)}</p>
+        <div class="product-meta">
+          <span class="price">₦${Number(p.price).toLocaleString()}</span>
+          <span class="commission">${Number(p.commission_rate)}% commission</span>
+        </div>
+        <button type="button" class="btn btn-primary promote-btn" data-id="${p.id}" ${alreadyPromoting ? "disabled" : ""}>
+          ${alreadyPromoting ? "Already promoting" : "Promote this"}
+        </button>
+      `;
+      gridEl.appendChild(card);
+    });
+
+    gridEl.querySelectorAll(".promote-btn").forEach((btn) => {
+      btn.addEventListener("click", () => promoteProduct(btn));
+    });
+  }
+
+  async function promoteProduct(btn) {
+    const productId = btn.dataset.id;
+    btn.disabled = true;
+    const originalText = btn.textContent;
+    btn.textContent = "Adding…";
+
+    // ASSUMED SCHEMA — table: campaigns
+    // columns: id (uuid, default), earner_id (uuid, fk auth.users),
+    // product_id (uuid, fk products.id), status (text, default 'active'),
+    // created_at (timestamptz, default now())
+    const { error } = await sb.from("campaigns").insert({
+      earner_id: currentUser.id,
+      product_id: productId,
+      status: "active",
+    });
+
+    if (error) {
+      btn.disabled = false;
+      btn.textContent = originalText;
+      alert(error.message || "Couldn't add this campaign. Please try again.");
+      return;
+    }
+
+    myCampaignProductIds.add(productId);
+    btn.textContent = "Already promoting";
+  }
+
+  (async () => {
+    const { data: { session } } = await sb.auth.getSession();
+
+    if (!session) {
+      window.location.href = "login.html";
+      return;
+    }
+
+    currentUser = session.user;
+    userChip.textContent = currentUser.email;
+
+    loadingEl.style.display = "none";
+    contentEl.style.display = "";
+
+    const [{ data: products, error: productsErr }, { data: myCampaigns, error: campaignsErr }] = await Promise.all([
+      sb.from("products").select("*").eq("status", "active").order("created_at", { ascending: false }),
+      sb.from("campaigns").select("product_id").eq("earner_id", currentUser.id),
+    ]);
+
+    gridLoadingEl.style.display = "none";
+
+    if (productsErr) {
+      emptyEl.style.display = "";
+      emptyEl.querySelector("p").textContent = "Couldn't load products right now.";
+      return;
+    }
+
+    if (!campaignsErr && myCampaigns) {
+      myCampaignProductIds = new Set(myCampaigns.map((c) => c.product_id));
+    }
+
+    // Don't show a user their own listed products in the browse list
+    allProducts = (products || []).filter((p) => p.owner_id !== currentUser.id);
+    render(allProducts);
+  })();
+
+  searchInput.addEventListener("input", () => {
+    const q = searchInput.value.trim().toLowerCase();
+    const filtered = !q
+      ? allProducts
+      : allProducts.filter(
+          (p) =>
+            p.name.toLowerCase().includes(q) ||
+            (p.description || "").toLowerCase().includes(q)
+        );
+    render(filtered);
+  });
+
+  logoutBtn.addEventListener("click", async () => {
+    await sb.auth.signOut();
+    window.location.href = "login.html";
+  });
+</script>
+
+</body>
+</html>
