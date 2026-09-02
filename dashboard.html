@@ -24,6 +24,17 @@
   .empty-state p { margin: 0 0 16px; }
   .dash-loading { padding: 60px 0; text-align: center; color: #93A0B4; }
   .user-chip { color: #93A0B4; font-size: 14px; }
+  /* Same layout as .nav-links, but never hidden on mobile — this is where
+     the logout control lives, and it must stay reachable at all widths. */
+  .nav-actions {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+    font-size: 14.5px;
+  }
+  @media (max-width: 880px) {
+    .user-chip { display: none; }
+  }
   .section-head-row {
     display: flex;
     justify-content: space-between;
@@ -84,7 +95,7 @@
       ADbridge
     </a>
     <div class="nav-links"></div>
-    <div class="nav-links">
+    <div class="nav-actions">
       <span class="user-chip" id="user-chip"></span>
       <button type="button" class="btn btn-ghost" id="logout-btn">Log out</button>
     </div>
