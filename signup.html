@@ -4,9 +4,133 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Create your account — ADbridge</title>
-<link rel="stylesheet" href="styles.css" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
-  /* Password field with icon toggle — scoped to this page since it's a new pattern */
+  :root {
+    --blue: #4A5FE8;
+    --blue-dark: #3B4ED1;
+    --ink: #101828;
+    --muted: #6B7385;
+    --faint: #93A0B4;
+    --line: #E7EAF0;
+    --bg: #F6F7FB;
+    --card: #FFFFFF;
+    --red: #E0554F;
+    --red-bg: #FDECEC;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 760px; margin: 0 auto; padding: 0 20px; }
+
+  /* ---------- nav ---------- */
+  .nav { background: var(--card); border-bottom: 1px solid var(--line); }
+  .nav .wrap {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding-top: 18px;
+    padding-bottom: 18px;
+    flex-wrap: wrap;
+  }
+  .brand {
+    display: flex;
+    flex-direction: column;
+    text-decoration: none;
+    color: var(--ink);
+    line-height: 1.15;
+  }
+  .brand-name { font-size: 22px; font-weight: 800; letter-spacing: -0.01em; }
+  .brand-name span { color: var(--blue); }
+  .brand-tag { font-size: 12.5px; color: var(--faint); margin-top: 1px; }
+
+  .nav-links { display: flex; align-items: center; gap: 12px; font-size: 14.5px; color: var(--muted); }
+  .pill-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 20px;
+    border-radius: 999px;
+    border: 1px solid var(--line);
+    background: var(--card);
+    color: var(--ink);
+    font-size: 14.5px;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    text-decoration: none;
+    transition: background .12s ease, border-color .12s ease;
+  }
+  .pill-btn:hover { background: var(--grey-bg); border-color: #D8DCE4; }
+
+  /* ---------- auth shell ---------- */
+  .auth-shell {
+    max-width: 480px;
+    margin: 0 auto;
+    padding: 48px 20px 60px;
+  }
+  .auth-card {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 20px;
+    padding: 34px 30px 30px;
+  }
+  .auth-back {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    color: var(--muted);
+    text-decoration: none;
+    font-size: 14px;
+    font-weight: 600;
+    margin-bottom: 20px;
+  }
+  .auth-back:hover { color: var(--ink); }
+  .auth-card h1 {
+    font-size: 26px;
+    font-weight: 800;
+    letter-spacing: -0.01em;
+    margin: 0 0 8px;
+  }
+  .auth-sub {
+    color: var(--muted);
+    font-size: 15px;
+    line-height: 1.5;
+    margin: 0 0 26px;
+  }
+
+  .field { margin-bottom: 18px; }
+  .field label {
+    display: block;
+    font-size: 13.5px;
+    font-weight: 600;
+    color: var(--muted);
+    margin-bottom: 6px;
+  }
+  .field input {
+    width: 100%;
+    box-sizing: border-box;
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 10px;
+    padding: 11px 13px;
+    color: var(--ink);
+    font-family: inherit;
+    font-size: 14.5px;
+    transition: border-color .12s ease;
+  }
+  .field input:focus { outline: none; border-color: var(--blue); }
+  .field input.err { border-color: var(--red); }
+  .field-error { font-size: 12.5px; color: var(--red); margin-top: 6px; min-height: 15px; }
+
   .password-field { position: relative; }
   .password-field input { padding-right: 44px; }
   .password-toggle {
@@ -14,21 +138,62 @@
     top: 0;
     right: 0;
     bottom: 0;
-    width: 40px;
+    width: 42px;
     display: flex;
     align-items: center;
     justify-content: center;
     background: none;
     border: none;
     cursor: pointer;
-    color: #93A0B4;
+    color: var(--faint);
     padding: 0;
   }
-  .password-toggle:hover { color: #E9ECF1; }
+  .password-toggle:hover { color: var(--ink); }
   .password-toggle svg { width: 20px; height: 20px; }
   .password-toggle .icon-off { display: none; }
   .password-toggle.is-visible .icon-on { display: none; }
   .password-toggle.is-visible .icon-off { display: block; }
+
+  .form-msg { font-size: 14px; margin: 4px 0 4px; min-height: 20px; font-weight: 500; display: none; }
+  .form-msg.show { display: block; }
+  .form-msg.error { color: var(--red); }
+  .form-msg.success { color: #1FA971; }
+
+  .auth-submit { margin-top: 8px; }
+  .btn-primary {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    padding: 16px 20px;
+    border: none;
+    border-radius: 999px;
+    background: linear-gradient(135deg, var(--blue), var(--blue-dark));
+    color: #fff;
+    font-family: inherit;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    text-decoration: none;
+    box-shadow: 0 10px 24px -10px rgba(74, 95, 232, 0.55);
+    transition: transform .1s ease, box-shadow .1s ease, opacity .1s ease;
+  }
+  .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 14px 28px -10px rgba(74, 95, 232, 0.6); }
+  .btn-primary:disabled { opacity: .65; cursor: default; transform: none; }
+
+  .auth-foot {
+    text-align: center;
+    color: var(--faint);
+    font-size: 13.5px;
+    margin: 18px 0 0;
+  }
+  .auth-foot a { color: var(--blue); font-weight: 600; text-decoration: none; }
+  .auth-foot a:hover { text-decoration: underline; }
+
+  @media (max-width: 480px) {
+    .auth-card { padding: 28px 20px 24px; }
+  }
 </style>
 </head>
 <body>
@@ -36,19 +201,12 @@
 <nav class="nav">
   <div class="wrap">
     <a href="index.html" class="brand">
-      <span class="brand-mark">
-        <svg viewBox="0 0 26 18" fill="none">
-          <path d="M1 15 C 6 4, 20 4, 25 15" stroke="#FFB020" stroke-width="2" stroke-linecap="round"/>
-          <circle cx="1" cy="15" r="2" fill="#E9ECF1"/>
-          <circle cx="25" cy="15" r="2" fill="#E9ECF1"/>
-        </svg>
-      </span>
-      ADbridge
+      <span class="brand-name">AD<span>bridge</span></span>
+      <span class="brand-tag">Promote products. Earn on every campaign.</span>
     </a>
-    <div class="nav-links"></div>
     <div class="nav-links">
       <span>Already have an account?</span>
-      <a href="login.html" class="btn btn-ghost">Log in</a>
+      <a href="login.html" class="pill-btn">Log in</a>
     </div>
   </div>
 </nav>
@@ -117,7 +275,7 @@
       <div class="form-msg" id="form-msg"></div>
 
       <div class="auth-submit">
-        <button type="submit" class="btn btn-primary btn-block" id="submit-btn">Create account</button>
+        <button type="submit" class="btn-primary" id="submit-btn">Create account</button>
       </div>
     </form>
 

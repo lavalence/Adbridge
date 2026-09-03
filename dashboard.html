@@ -4,123 +4,287 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Dashboard — ADbridge</title>
-<link rel="stylesheet" href="styles.css" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
-  /* Dashboard-only additions — scoped here since these are new patterns not in styles.css */
-  .stat-value { font-family: inherit; font-size: 28px; margin: 6px 0 2px; }
-  .stat-label { color: #93A0B4; font-size: 13px; }
-  .stat-head { display: flex; align-items: center; gap: 8px; }
-  .stat-icon { width: 18px; height: 18px; flex-shrink: 0; }
-  .stat-action { margin-top: 14px; padding: 9px 16px; font-size: 13.5px; }
-  .stat-action .btn-icon { width: 15px; height: 15px; flex-shrink: 0; }
-  .empty-state {
-    border: 1px dashed rgba(233,236,241,0.18);
-    border-radius: 12px;
-    padding: 32px 24px;
-    text-align: center;
-    color: #93A0B4;
+  :root {
+    --blue: #4A5FE8;
+    --blue-dark: #3B4ED1;
+    --ink: #101828;
+    --muted: #6B7385;
+    --faint: #93A0B4;
+    --line: #E7EAF0;
+    --bg: #F6F7FB;
+    --card: #FFFFFF;
+    --green-bg: #E7F8EF;
+    --green: #1FA971;
+    --grey-bg: #F1F2F5;
   }
-  .empty-state p { margin: 0 0 16px; }
-  .dash-loading { padding: 60px 0; text-align: center; color: #93A0B4; }
-  .user-chip { color: #93A0B4; font-size: 14px; }
-  /* Same layout as .nav-links, but never hidden on mobile — this is where
-     the logout control lives, and it must stay reachable at all widths. */
-  .nav-actions {
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 760px; margin: 0 auto; padding: 0 20px; }
+
+  /* ---------- nav ---------- */
+  .nav { background: var(--card); border-bottom: 1px solid var(--line); }
+  .nav .wrap {
     display: flex;
     align-items: center;
-    gap: 14px;
+    justify-content: space-between;
+    gap: 16px;
+    padding-top: 18px;
+    padding-bottom: 18px;
+    flex-wrap: wrap;
+  }
+  .brand {
+    display: flex;
+    flex-direction: column;
+    text-decoration: none;
+    color: var(--ink);
+    line-height: 1.15;
+  }
+  .brand-name {
+    font-size: 22px;
+    font-weight: 800;
+    letter-spacing: -0.01em;
+  }
+  .brand-name span { color: var(--blue); }
+  .brand-tag { font-size: 12.5px; color: var(--faint); margin-top: 1px; }
+
+  .nav-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .pill-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 20px;
+    border-radius: 999px;
+    border: 1px solid var(--line);
+    background: var(--card);
+    color: var(--ink);
     font-size: 14.5px;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    text-decoration: none;
+    transition: background .12s ease, border-color .12s ease;
   }
-  @media (max-width: 880px) {
-    .user-chip { display: none; }
+  .pill-btn:hover { background: var(--grey-bg); border-color: #D8DCE4; }
+  .user-chip {
+    color: var(--faint);
+    font-size: 13.5px;
+    padding-right: 4px;
   }
+  @media (max-width: 640px) { .user-chip { display: none; } }
+
+  /* ---------- header ---------- */
+  .dash-header { padding: 40px 0 8px; }
+  .eyebrow {
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    color: var(--blue);
+    margin: 0 0 12px;
+  }
+  .dash-header h1 {
+    font-size: 38px;
+    line-height: 1.15;
+    font-weight: 800;
+    letter-spacing: -0.01em;
+    margin: 0 0 14px;
+  }
+  .dash-header p {
+    font-size: 16px;
+    color: var(--muted);
+    max-width: 46ch;
+    margin: 0;
+    line-height: 1.5;
+  }
+
+  .dash-loading { padding: 60px 0; text-align: center; color: var(--faint); }
+
+  /* ---------- balance card ---------- */
+  .card {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 20px;
+    padding: 26px 26px 28px;
+    margin-top: 28px;
+  }
+  .balance-row {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+  }
+  .stat-label { color: var(--muted); font-size: 15px; margin: 0; }
+  .eye-toggle {
+    width: 38px;
+    height: 38px;
+    border-radius: 50%;
+    border: 1px solid var(--line);
+    background: var(--card);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    flex-shrink: 0;
+    color: var(--ink);
+    transition: background .12s ease;
+  }
+  .eye-toggle:hover { background: var(--grey-bg); }
+  .eye-toggle svg { width: 18px; height: 18px; }
+
+  .stat-value {
+    font-size: 38px;
+    font-weight: 800;
+    letter-spacing: -0.01em;
+    margin: 6px 0 0;
+  }
+  .stat-value.masked { letter-spacing: 2px; }
+
+  .stat-secondary { margin-top: 22px; }
+  .stat-secondary .stat-value { font-size: 28px; margin-top: 4px; }
+
+  .btn-primary {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    margin-top: 24px;
+    padding: 16px 20px;
+    border: none;
+    border-radius: 999px;
+    background: linear-gradient(135deg, var(--blue), var(--blue-dark));
+    color: #fff;
+    font-family: inherit;
+    font-size: 16px;
+    font-weight: 700;
+    cursor: pointer;
+    text-decoration: none;
+    box-shadow: 0 10px 24px -10px rgba(74, 95, 232, 0.55);
+    transition: transform .1s ease, box-shadow .1s ease;
+  }
+  .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 14px 28px -10px rgba(74, 95, 232, 0.6); }
+  .btn-primary svg { width: 18px; height: 18px; }
+
+  /* ---------- campaigns section ---------- */
   .section-head-row {
     display: flex;
     justify-content: space-between;
-    align-items: flex-end;
+    align-items: center;
     gap: 16px;
     flex-wrap: wrap;
+    margin-bottom: 14px;
   }
-  .section-actions { display: flex; gap: 10px; flex-shrink: 0; }
-  .campaign-group {
-    margin-top: 16px;
-    border: 1px solid rgba(233,236,241,0.12);
-    border-radius: 12px;
-    padding: 18px 20px;
-    background: rgba(233,236,241,0.02);
+  .section-head-row h2 {
+    font-size: 22px;
+    font-weight: 800;
+    letter-spacing: -0.01em;
+    margin: 0;
   }
+  .section-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+
+  .empty-state {
+    border: 1.5px dashed var(--line);
+    border-radius: 16px;
+    padding: 30px 22px;
+    text-align: center;
+    color: var(--muted);
+    font-size: 14.5px;
+  }
+  .empty-state p { margin: 0; }
+
+  .campaign-group { margin-top: 14px; }
   .campaign-group:first-of-type { margin-top: 0; }
   .campaign-group h4 {
-    font-size: 13px;
+    font-size: 12.5px;
     text-transform: uppercase;
-    letter-spacing: 0.04em;
-    margin: 0 0 8px;
-    font-weight: 600;
+    letter-spacing: 0.06em;
+    margin: 0 0 4px;
+    font-weight: 700;
+    color: var(--faint);
   }
-  .campaign-group.owned h4 { color: #FFB020; }
-  .campaign-group.promoting h4 { color: #7DB8FF; }
   .campaign-row {
     display: flex;
     justify-content: space-between;
     align-items: center;
     gap: 12px;
     padding: 14px 0;
-    border-bottom: 1px solid rgba(233,236,241,0.1);
+    border-bottom: 1px solid var(--line);
   }
   .campaign-row:last-child { border-bottom: none; }
-  .campaign-row .c-name { font-weight: 600; }
+  .campaign-row .c-name { font-weight: 600; font-size: 15px; }
   .campaign-row .c-right { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
   .campaign-row .c-status {
     font-size: 12px;
-    padding: 3px 10px;
+    font-weight: 600;
+    padding: 4px 12px;
     border-radius: 999px;
-    background: rgba(74,222,128,0.12);
-    color: #4ADE80;
+    background: var(--green-bg);
+    color: var(--green);
     text-transform: capitalize;
   }
   .campaign-row .c-status.paused,
-  .campaign-row .c-status.completed { background: rgba(147,160,180,0.14); color: #93A0B4; }
+  .campaign-row .c-status.completed { background: var(--grey-bg); color: var(--faint); }
   .c-delete {
     display: flex;
     align-items: center;
     justify-content: center;
-    width: 28px;
-    height: 28px;
-    border-radius: 6px;
+    width: 30px;
+    height: 30px;
+    border-radius: 8px;
     border: none;
     background: transparent;
-    color: #93A0B4;
+    color: var(--faint);
     cursor: pointer;
     transition: background .12s ease, color .12s ease;
   }
-  .c-delete:hover { background: rgba(255,107,107,0.12); color: #FF6B6B; }
+  .c-delete:hover { background: #FDECEC; color: #E0554F; }
   .c-delete svg { width: 16px; height: 16px; pointer-events: none; }
   .c-delete:disabled { opacity: 0.4; cursor: default; pointer-events: none; }
-  .subgroup-empty {
-    color: #93A0B4;
-    font-size: 13px;
-    padding: 8px 0 14px;
-  }
+  .subgroup-empty { color: var(--faint); font-size: 13.5px; padding: 6px 0 12px; }
+
   .see-all-btn {
     display: inline-flex;
     align-items: center;
     gap: 4px;
     background: none;
     border: none;
-    color: #FFB020;
-    font-family: "Inter", sans-serif;
-    font-size: 13px;
-    font-weight: 600;
-    padding: 8px 0 4px;
+    color: var(--blue);
+    font-family: inherit;
+    font-size: 13.5px;
+    font-weight: 700;
+    padding: 10px 0 2px;
     cursor: pointer;
   }
   .see-all-btn:hover { text-decoration: underline; }
-  .see-all-btn svg {
-    width: 13px;
-    height: 13px;
-    transition: transform .15s ease;
-  }
+  .see-all-btn svg { width: 13px; height: 13px; transition: transform .15s ease; }
   .see-all-btn.expanded svg { transform: rotate(180deg); }
+
+  footer {
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 46px 20px 40px;
+    max-width: 760px;
+    margin: 0 auto;
+    color: var(--faint);
+    font-size: 13px;
+  }
+
+  @media (max-width: 480px) {
+    .dash-header h1 { font-size: 30px; }
+    .stat-value { font-size: 32px; }
+    .card { padding: 22px 18px 24px; }
+  }
 </style>
 </head>
 <body>
@@ -128,19 +292,12 @@
 <nav class="nav">
   <div class="wrap">
     <a href="index.html" class="brand">
-      <span class="brand-mark">
-        <svg viewBox="0 0 26 18" fill="none">
-          <path d="M1 15 C 6 4, 20 4, 25 15" stroke="#FFB020" stroke-width="2" stroke-linecap="round"/>
-          <circle cx="1" cy="15" r="2" fill="#E9ECF1"/>
-          <circle cx="25" cy="15" r="2" fill="#E9ECF1"/>
-        </svg>
-      </span>
-      ADbridge
+      <span class="brand-name">AD<span>bridge</span></span>
+      <span class="brand-tag">Promote products. Earn on every campaign.</span>
     </a>
-    <div class="nav-links"></div>
     <div class="nav-actions">
       <span class="user-chip" id="user-chip"></span>
-      <button type="button" class="btn btn-ghost" id="logout-btn">Log out</button>
+      <button type="button" class="pill-btn" id="logout-btn">Log out</button>
     </div>
   </div>
 </nav>
@@ -149,79 +306,71 @@
 
 <div id="dash-content" style="display:none;">
 
-  <header class="wrap section-border">
-    <div class="section-head">
-      <h2 id="welcome-heading">Welcome back</h2>
-      <p>Here's where things stand on your account.</p>
-    </div>
+  <header class="wrap dash-header">
+    <p class="eyebrow">YOUR DASHBOARD</p>
+    <h1 id="welcome-heading">Welcome back</h1>
+    <p>Track your earnings, manage your campaigns, and request a payout.</p>
   </header>
 
-  <section class="wrap section-border">
-    <div class="steps">
-      <div class="step">
-        <div class="stat-head">
-          <svg class="stat-icon" viewBox="0 0 24 24" fill="none" stroke="#FFB020" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M3 7a2 2 0 0 1 2-2h13a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7Z"/>
-            <path d="M16 12h3"/>
-            <path d="M3 9h18"/>
+  <section class="wrap">
+    <div class="card">
+      <div class="balance-row">
+        <p class="stat-label">Wallet balance</p>
+        <button type="button" class="eye-toggle" id="balance-eye" aria-label="Show or hide balance" aria-pressed="true">
+          <svg id="eye-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7Z"/>
+            <circle cx="12" cy="12" r="3"/>
           </svg>
-          <div class="stat-label">Wallet balance</div>
-        </div>
-        <div class="stat-value" id="stat-balance">₦0</div>
-        <p>Approved and available to withdraw.</p>
-        <a href="withdraw.html" class="btn btn-primary stat-action">
-          <svg class="btn-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M12 5v14"/>
-            <path d="M5 12l7 7 7-7"/>
-          </svg>
-          Withdraw
-        </a>
+        </button>
       </div>
-      <div class="step">
-        <div class="stat-head">
-          <svg class="stat-icon" viewBox="0 0 24 24" fill="none" stroke="#93A0B4" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="12" cy="12" r="9"/>
-            <path d="M12 7v5l3.5 2"/>
-          </svg>
-          <div class="stat-label">Pending review</div>
-        </div>
-        <div class="stat-value" id="stat-pending">₦0</div>
-        <p>Awaiting the next review cycle.</p>
+      <p class="stat-value" id="stat-balance">₦0</p>
+
+      <div class="stat-secondary">
+        <p class="stat-label">Pending review</p>
+        <p class="stat-value" id="stat-pending">₦0</p>
       </div>
+
+      <a href="withdraw.html" class="btn-primary" id="withdraw-btn">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 5v14"/>
+          <path d="M5 12l7 7 7-7"/>
+        </svg>
+        Withdraw
+      </a>
     </div>
   </section>
 
-  <section class="wrap section-border">
-    <div class="section-head-row">
-      <div class="section-head">
+  <section class="wrap" style="margin-top:30px;">
+    <div class="card">
+      <div class="section-head-row">
         <h2>Your campaigns</h2>
+        <div class="section-actions">
+          <a href="product.html" class="pill-btn">Add a product</a>
+          <a href="browse.html" class="pill-btn">Browse to promote</a>
+        </div>
       </div>
-      <div class="section-actions">
-        <a href="product.html" class="btn btn-ghost">Add a product</a>
-        <a href="browse.html" class="btn btn-ghost">Browse products to promote</a>
+      <div id="campaigns-loading" class="dash-loading" style="padding:20px 0;">Loading campaigns…</div>
+      <div class="empty-state" id="campaigns-empty" style="display:none;">
+        <p>You don't have any campaigns yet — add a product to list, or browse products to promote above.</p>
       </div>
-    </div>
-    <div id="campaigns-loading" class="dash-loading" style="padding:20px 0;">Loading campaigns…</div>
-    <div class="empty-state" id="campaigns-empty" style="display:none;">
-      <p>You don't have any campaigns yet — add a product to list, or browse products to promote above.</p>
-    </div>
-    <div id="campaigns-list" style="display:none;">
-      <div class="campaign-group owned">
-        <h4>Products you listed</h4>
-        <div id="owned-list"></div>
-        <p class="subgroup-empty" id="owned-empty" style="display:none;">Nothing listed yet.</p>
-      </div>
-      <div class="campaign-group promoting">
-        <h4>Products you're promoting</h4>
-        <div id="promoting-list"></div>
-        <p class="subgroup-empty" id="promoting-empty" style="display:none;">Not promoting anything yet.</p>
+      <div id="campaigns-list" style="display:none;">
+        <div class="campaign-group owned">
+          <h4>Products you listed</h4>
+          <div id="owned-list"></div>
+          <p class="subgroup-empty" id="owned-empty" style="display:none;">Nothing listed yet.</p>
+        </div>
+        <div class="campaign-group promoting">
+          <h4>Products you're promoting</h4>
+          <div id="promoting-list"></div>
+          <p class="subgroup-empty" id="promoting-empty" style="display:none;">Not promoting anything yet.</p>
+        </div>
       </div>
     </div>
   </section>
 
 </div>
 
-<footer class="wrap">
+<footer>
   <span>© 2026 ADbridge</span>
   <span>Built on a verified payout pipeline</span>
 </footer>
@@ -237,6 +386,8 @@
 
   const statBalanceEl = document.getElementById("stat-balance");
   const statPendingEl = document.getElementById("stat-pending");
+  const balanceEyeBtn = document.getElementById("balance-eye");
+  const eyeIconEl = document.getElementById("eye-icon");
 
   const campaignsLoadingEl = document.getElementById("campaigns-loading");
   const campaignsEmptyEl = document.getElementById("campaigns-empty");
@@ -261,6 +412,17 @@
     </svg>
   `;
 
+  const EYE_OPEN_PATH = `
+    <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7-11-7-11-7Z"/>
+    <circle cx="12" cy="12" r="3"/>
+  `;
+  const EYE_CLOSED_PATH = `
+    <path d="M3 3l18 18"/>
+    <path d="M10.6 5.2A11 11 0 0 1 12 5c7 0 11 7 11 7a17.7 17.7 0 0 1-3.1 3.9"/>
+    <path d="M6.6 6.6C3.9 8.3 2 12 2 12s4 7 11 7a10.4 10.4 0 0 0 4.6-1"/>
+    <path d="M9.9 9.9a3 3 0 0 0 4.2 4.2"/>
+  `;
+
   const DEFAULT_VISIBLE_COUNT = 1;
 
   let currentUserId = null;
@@ -269,9 +431,35 @@
   let ownedExpanded = false;
   let promotingExpanded = false;
 
+  // Balance visibility — hidden values render as masked dots so the amount
+  // can't be shoulder-surfed; toggled by the eye button.
+  let balanceVisible = true;
+  let lastBalance = 0;
+  let lastPending = 0;
+
   function naira(n) {
     return "₦" + Number(n || 0).toLocaleString(undefined, { maximumFractionDigits: 2 });
   }
+
+  function renderBalances() {
+    if (balanceVisible) {
+      statBalanceEl.textContent = naira(lastBalance);
+      statPendingEl.textContent = naira(lastPending);
+      statBalanceEl.classList.remove("masked");
+      eyeIconEl.innerHTML = EYE_OPEN_PATH;
+    } else {
+      statBalanceEl.textContent = "₦ • • • • • •";
+      statPendingEl.textContent = "₦ • • • • • •";
+      statBalanceEl.classList.add("masked");
+      eyeIconEl.innerHTML = EYE_CLOSED_PATH;
+    }
+  }
+
+  balanceEyeBtn.addEventListener("click", () => {
+    balanceVisible = !balanceVisible;
+    balanceEyeBtn.setAttribute("aria-pressed", String(balanceVisible));
+    renderBalances();
+  });
 
   function escapeHtml(str) {
     const div = document.createElement("div");
@@ -493,8 +681,9 @@
         if (row.status === "approved") balance += amt;
         else if (row.status === "pending") pending += amt;
       });
-      statBalanceEl.textContent = naira(balance);
-      statPendingEl.textContent = naira(pending);
+      lastBalance = balance;
+      lastPending = pending;
+      renderBalances();
     }
 
     await loadCampaigns();

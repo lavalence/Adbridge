@@ -5,21 +5,255 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>ADbridge — The connection layer between advertisers and earners</title>
 <meta name="description" content="ADbridge routes ad spend directly to real people who complete tasks, share reach, and drive results — with payouts and verification built in." />
-<link rel="stylesheet" href="styles.css" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --blue: #4A5FE8;
+    --blue-dark: #3B4ED1;
+    --ink: #101828;
+    --muted: #6B7385;
+    --faint: #93A0B4;
+    --line: #E7EAF0;
+    --bg: #F6F7FB;
+    --card: #FFFFFF;
+    --green-bg: #E7F8EF;
+    --green: #1FA971;
+    --grey-bg: #F1F2F5;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 1080px; margin: 0 auto; padding: 0 20px; }
+  a { color: inherit; }
+
+  /* ---------- nav ---------- */
+  .nav { background: var(--card); border-bottom: 1px solid var(--line); }
+  .nav .wrap {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding-top: 18px;
+    padding-bottom: 18px;
+    flex-wrap: wrap;
+  }
+  .brand {
+    display: flex;
+    flex-direction: column;
+    text-decoration: none;
+    color: var(--ink);
+    line-height: 1.15;
+  }
+  .brand-name {
+    font-size: 22px;
+    font-weight: 800;
+    letter-spacing: -0.01em;
+  }
+  .brand-name span { color: var(--blue); }
+  .brand-tag { font-size: 12.5px; color: var(--faint); margin-top: 1px; }
+
+  .nav-links {
+    display: flex;
+    align-items: center;
+    gap: 26px;
+    font-size: 14.5px;
+    font-weight: 500;
+  }
+  .nav-links a {
+    text-decoration: none;
+    color: var(--muted);
+    transition: color .12s ease;
+  }
+  .nav-links a:hover { color: var(--ink); }
+  .nav-links span { color: var(--faint); font-size: 14px; }
+  @media (max-width: 880px) {
+    .nav-links:first-of-type { display: none; }
+  }
+
+  .pill-btn, .btn-ghost {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 20px;
+    border-radius: 999px;
+    border: 1px solid var(--line);
+    background: var(--card);
+    color: var(--ink);
+    font-size: 14.5px;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    text-decoration: none;
+    transition: background .12s ease, border-color .12s ease;
+  }
+  .pill-btn:hover, .btn-ghost:hover { background: var(--grey-bg); border-color: #D8DCE4; }
+
+  .btn-primary {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 14px 26px;
+    border: none;
+    border-radius: 999px;
+    background: linear-gradient(135deg, var(--blue), var(--blue-dark));
+    color: #fff;
+    font-family: inherit;
+    font-size: 15.5px;
+    font-weight: 700;
+    cursor: pointer;
+    text-decoration: none;
+    box-shadow: 0 10px 24px -10px rgba(74, 95, 232, 0.55);
+    transition: transform .1s ease, box-shadow .1s ease;
+  }
+  .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 14px 28px -10px rgba(74, 95, 232, 0.6); }
+
+  /* ---------- hero ---------- */
+  .hero {
+    display: grid;
+    grid-template-columns: 1.1fr 0.9fr;
+    align-items: center;
+    gap: 40px;
+    padding: 72px 20px 64px;
+  }
+  .hero h1 {
+    font-size: 46px;
+    line-height: 1.14;
+    font-weight: 800;
+    letter-spacing: -0.015em;
+    margin: 0 0 20px;
+  }
+  .lede {
+    font-size: 17px;
+    line-height: 1.6;
+    color: var(--muted);
+    max-width: 52ch;
+    margin: 0 0 30px;
+  }
+  .hero-actions { display: flex; align-items: center; gap: 14px; flex-wrap: wrap; }
+  .hero-note { font-size: 13.5px; color: var(--faint); margin: 20px 0 0; }
+  .hero-note a { color: var(--blue); font-weight: 600; text-decoration: none; }
+  .hero-note a:hover { text-decoration: underline; }
+
+  .bridge-diagram {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 20px;
+    padding: 20px;
+  }
+  .bridge-diagram svg { width: 100%; height: auto; display: block; }
+  .node-label { font-size: 13px; font-family: "Inter", sans-serif; }
+  .bridge-pulse {
+    offset-path: path("M20,160 C 140,60 260,260 380,160 S 620,60 700,160");
+    animation: pulse-move 3.5s linear infinite;
+  }
+  @keyframes pulse-move {
+    0% { offset-distance: 0%; opacity: 0; }
+    10% { opacity: 1; }
+    90% { opacity: 1; }
+    100% { offset-distance: 100%; opacity: 0; }
+  }
+
+  @media (max-width: 880px) {
+    .hero { grid-template-columns: 1fr; padding-top: 48px; }
+    .hero h1 { font-size: 34px; }
+  }
+
+  /* ---------- split section ---------- */
+  .section-border { border-top: 1px solid var(--line); padding: 64px 20px; }
+  .section-head { max-width: 60ch; margin: 0 0 40px; }
+  .section-head h2 {
+    font-size: 30px;
+    font-weight: 800;
+    letter-spacing: -0.01em;
+    margin: 0 0 12px;
+  }
+  .section-head p { font-size: 16px; color: var(--muted); margin: 0; line-height: 1.55; }
+
+  .split {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 24px;
+  }
+  .split-side {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 20px;
+    padding: 30px 28px;
+  }
+  .split-tag {
+    display: inline-block;
+    font-size: 12.5px;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--blue);
+    background: #EEF0FE;
+    padding: 5px 12px;
+    border-radius: 999px;
+    margin-bottom: 16px;
+  }
+  .split-side h3 {
+    font-size: 21px;
+    font-weight: 800;
+    letter-spacing: -0.01em;
+    margin: 0 0 16px;
+  }
+  .split-side ul {
+    margin: 0 0 24px;
+    padding: 0;
+    list-style: none;
+  }
+  .split-side li {
+    position: relative;
+    padding-left: 22px;
+    margin-bottom: 12px;
+    color: var(--muted);
+    font-size: 14.5px;
+    line-height: 1.5;
+  }
+  .split-side li::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 7px;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--blue);
+  }
+
+  @media (max-width: 720px) {
+    .split { grid-template-columns: 1fr; }
+  }
+
+  footer {
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 40px 20px 40px;
+    max-width: 1080px;
+    margin: 0 auto;
+    color: var(--faint);
+    font-size: 13px;
+  }
+</style>
 </head>
 <body>
 
 <nav class="nav">
   <div class="wrap">
     <a href="index.html" class="brand">
-      <span class="brand-mark">
-        <svg viewBox="0 0 26 18" fill="none">
-          <path d="M1 15 C 6 4, 20 4, 25 15" stroke="#FFB020" stroke-width="2" stroke-linecap="round"/>
-          <circle cx="1" cy="15" r="2" fill="#E9ECF1"/>
-          <circle cx="25" cy="15" r="2" fill="#E9ECF1"/>
-        </svg>
-      </span>
-      ADbridge
+      <span class="brand-name">AD<span>bridge</span></span>
+      <span class="brand-tag">Promote products. Earn on every campaign.</span>
     </a>
     <div class="nav-links">
       <a href="see.html">How it works</a>
@@ -28,7 +262,7 @@
       <a href="#earners">For earners</a>
     </div>
     <div class="nav-links">
-      <a href="login.html" class="btn btn-ghost">Log in</a>
+      <a href="login.html" class="pill-btn">Log in</a>
     </div>
   </div>
 </nav>
@@ -38,20 +272,20 @@
     <h1>The bridge between ad budgets and the people who move them.</h1>
     <p class="lede">ADbridge connects advertisers who need real engagement to earners who complete verified tasks — with tracking, payout, and fraud checks handled on both ends of the line.</p>
     <div class="hero-actions">
-      <a href="signup.html" class="btn btn-primary">Create an account</a>
-      <a href="see.html" class="btn btn-ghost">See how it works</a>
+      <a href="signup.html" class="btn-primary">Create an account</a>
+      <a href="see.html" class="pill-btn">See how it works</a>
     </div>
     <p class="hero-note">Free to join. No card required to start earning. Already have an account? <a href="login.html">Log in</a>.</p>
   </div>
 
   <div class="bridge-diagram" aria-hidden="true">
     <svg viewBox="0 0 720 320">
-      <path d="M20,160 C 140,60 260,260 380,160 S 620,60 700,160" fill="none" stroke="rgba(233,236,241,0.18)" stroke-width="1.5"/>
-      <circle r="4" fill="#FFB020" class="bridge-pulse"/>
-      <circle cx="20" cy="160" r="5" fill="#E9ECF1"/>
-      <circle cx="700" cy="160" r="5" fill="#E9ECF1"/>
-      <text x="20" y="200" fill="#93A0B4" class="node-label">Advertiser</text>
-      <text x="620" y="200" fill="#93A0B4" class="node-label">Earner</text>
+      <path d="M20,160 C 140,60 260,260 380,160 S 620,60 700,160" fill="none" stroke="#E7EAF0" stroke-width="1.5"/>
+      <circle r="4" fill="#4A5FE8" class="bridge-pulse"/>
+      <circle cx="20" cy="160" r="5" fill="#101828"/>
+      <circle cx="700" cy="160" r="5" fill="#101828"/>
+      <text x="20" y="200" fill="#6B7385" class="node-label">Advertiser</text>
+      <text x="620" y="200" fill="#6B7385" class="node-label">Earner</text>
     </svg>
   </div>
 </header>
@@ -70,7 +304,7 @@
         <li>ADbridge handles the ads and the lead chat — no ad budget needed from you</li>
         <li>See live sales and payout activity in your dashboard</li>
       </ul>
-      <a href="product.html" class="btn btn-ghost">Add a product</a>
+      <a href="product.html" class="pill-btn">Add a product</a>
     </div>
     <div class="split-side" id="earners">
       <div class="split-tag">For promoters</div>
@@ -80,12 +314,12 @@
         <li>Pay ADbridge to run the campaign — ADbridge runs the ads and tracks the leads</li>
         <li>Track every payout from sale to release</li>
       </ul>
-      <a href="browse.html" class="btn btn-ghost">Start promoting</a>
+      <a href="browse.html" class="pill-btn">Start promoting</a>
     </div>
   </div>
 </section>
 
-<footer class="wrap">
+<footer>
   <span>© 2026 ADbridge</span>
   <span>Built on a verified payout pipeline</span>
 </footer>

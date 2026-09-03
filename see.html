@@ -5,21 +5,284 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>How it works — ADbridge</title>
 <meta name="description" content="See how a campaign moves through ADbridge, from listing a product to payout — and the two ways a campaign can pay out." />
-<link rel="stylesheet" href="styles.css" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --blue: #4A5FE8;
+    --blue-dark: #3B4ED1;
+    --ink: #101828;
+    --muted: #6B7385;
+    --faint: #93A0B4;
+    --line: #E7EAF0;
+    --bg: #F6F7FB;
+    --card: #FFFFFF;
+    --green-bg: #E7F8EF;
+    --green: #1FA971;
+    --grey-bg: #F1F2F5;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 960px; margin: 0 auto; padding: 0 20px; }
+
+  /* ---------- nav ---------- */
+  .nav { background: var(--card); border-bottom: 1px solid var(--line); }
+  .nav .wrap {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding-top: 18px;
+    padding-bottom: 18px;
+    flex-wrap: wrap;
+  }
+  .brand {
+    display: flex;
+    flex-direction: column;
+    text-decoration: none;
+    color: var(--ink);
+    line-height: 1.15;
+  }
+  .brand-name {
+    font-size: 22px;
+    font-weight: 800;
+    letter-spacing: -0.01em;
+  }
+  .brand-name span { color: var(--blue); }
+  .brand-tag { font-size: 12.5px; color: var(--faint); margin-top: 1px; }
+
+  .nav-links {
+    display: flex;
+    align-items: center;
+    gap: 26px;
+    flex-wrap: wrap;
+  }
+  .nav-links a {
+    color: var(--muted);
+    text-decoration: none;
+    font-size: 14.5px;
+    font-weight: 600;
+    transition: color .12s ease;
+  }
+  .nav-links a:hover { color: var(--ink); }
+
+  .nav-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    padding: 10px 20px;
+    border-radius: 999px;
+    font-size: 14.5px;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    text-decoration: none;
+    border: 1px solid transparent;
+    transition: background .12s ease, border-color .12s ease, transform .1s ease, box-shadow .1s ease;
+  }
+  .btn-ghost {
+    border: 1px solid var(--line);
+    background: var(--card);
+    color: var(--ink);
+  }
+  .btn-ghost:hover { background: var(--grey-bg); border-color: #D8DCE4; }
+  .btn-primary {
+    background: linear-gradient(135deg, var(--blue), var(--blue-dark));
+    color: #fff;
+    box-shadow: 0 10px 24px -10px rgba(74, 95, 232, 0.55);
+  }
+  .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 14px 28px -10px rgba(74, 95, 232, 0.6); }
+
+  @media (max-width: 880px) {
+    .nav-links { display: none; }
+  }
+
+  /* ---------- hero ---------- */
+  .hero {
+    padding: 64px 0 48px;
+  }
+  .hero h1 {
+    font-size: 42px;
+    line-height: 1.15;
+    font-weight: 800;
+    letter-spacing: -0.01em;
+    margin: 0 0 16px;
+    max-width: 22ch;
+  }
+  .hero .lede {
+    font-size: 17px;
+    color: var(--muted);
+    max-width: 56ch;
+    margin: 0;
+    line-height: 1.6;
+  }
+  .hero-actions {
+    display: flex;
+    gap: 12px;
+    flex-wrap: wrap;
+    margin-top: 28px;
+  }
+
+  /* ---------- sections ---------- */
+  .section-border {
+    border-top: 1px solid var(--line);
+    padding: 56px 0;
+  }
+  .section-head {
+    margin-bottom: 36px;
+    max-width: 60ch;
+  }
+  .section-head h2 {
+    font-size: 28px;
+    font-weight: 800;
+    letter-spacing: -0.01em;
+    margin: 0 0 10px;
+  }
+  .section-head p {
+    font-size: 15.5px;
+    color: var(--muted);
+    margin: 0;
+    line-height: 1.6;
+  }
+
+  /* ---------- steps ---------- */
+  .steps {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px;
+  }
+  .step {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 20px;
+    padding: 26px 24px 28px;
+  }
+  .step .idx {
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    color: var(--blue);
+    margin-bottom: 14px;
+  }
+  .step h3 {
+    font-size: 17px;
+    font-weight: 700;
+    margin: 0 0 8px;
+    letter-spacing: -0.005em;
+  }
+  .step p {
+    font-size: 14.5px;
+    color: var(--muted);
+    margin: 0;
+    line-height: 1.55;
+  }
+
+  /* ---------- split (payout types) ---------- */
+  .split {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 20px;
+  }
+  .split-side {
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 20px;
+    padding: 28px 26px 30px;
+    display: flex;
+    flex-direction: column;
+  }
+  .split-tag {
+    display: inline-block;
+    align-self: flex-start;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--blue);
+    background: #EEF0FD;
+    padding: 5px 12px;
+    border-radius: 999px;
+    margin-bottom: 16px;
+  }
+  .split-side h3 {
+    font-size: 20px;
+    font-weight: 800;
+    letter-spacing: -0.01em;
+    margin: 0 0 16px;
+  }
+  .split-side ul {
+    list-style: none;
+    margin: 0 0 24px;
+    padding: 0;
+    flex-grow: 1;
+  }
+  .split-side li {
+    position: relative;
+    padding: 10px 0 10px 24px;
+    border-bottom: 1px solid var(--line);
+    font-size: 14.5px;
+    color: var(--muted);
+    line-height: 1.5;
+  }
+  .split-side li:last-child { border-bottom: none; }
+  .split-side li::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 18px;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--blue);
+  }
+  .split-side .btn { align-self: flex-start; }
+
+  /* ---------- footer ---------- */
+  footer {
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 46px 20px 40px;
+    max-width: 960px;
+    margin: 0 auto;
+    color: var(--faint);
+    font-size: 13px;
+  }
+
+  @media (max-width: 760px) {
+    .steps { grid-template-columns: 1fr; }
+    .split { grid-template-columns: 1fr; }
+  }
+  @media (max-width: 480px) {
+    .hero { padding: 48px 0 36px; }
+    .hero h1 { font-size: 32px; }
+    .section-head h2 { font-size: 24px; }
+  }
+</style>
 </head>
 <body>
 
 <nav class="nav">
   <div class="wrap">
     <a href="index.html" class="brand">
-      <span class="brand-mark">
-        <svg viewBox="0 0 26 18" fill="none">
-          <path d="M1 15 C 6 4, 20 4, 25 15" stroke="#FFB020" stroke-width="2" stroke-linecap="round"/>
-          <circle cx="1" cy="15" r="2" fill="#E9ECF1"/>
-          <circle cx="25" cy="15" r="2" fill="#E9ECF1"/>
-        </svg>
-      </span>
-      ADbridge
+      <span class="brand-name">AD<span>bridge</span></span>
+      <span class="brand-tag">Promote products. Earn on every campaign.</span>
     </a>
     <div class="nav-links">
       <a href="see.html">How it works</a>
@@ -27,21 +290,19 @@
       <a href="index.html#advertisers">For advertisers</a>
       <a href="index.html#earners">For earners</a>
     </div>
-    <div class="nav-links">
-      <a href="login.html">Log in</a>
+    <div class="nav-actions">
+      <a href="login.html" class="btn btn-ghost">Log in</a>
       <a href="signup.html" class="btn btn-primary">Get started</a>
     </div>
   </div>
 </nav>
 
 <header class="wrap hero">
-  <div>
-    <h1>How a campaign actually moves through ADbridge.</h1>
-    <p class="lede">From the moment an advertiser lists a product to the moment a promoter gets paid — here's the full pipeline, including both payout structures.</p>
-    <div class="hero-actions">
-      <a href="signup.html" class="btn btn-primary">Create an account</a>
-      <a href="index.html" class="btn btn-ghost">Back to home</a>
-    </div>
+  <h1>How a campaign actually moves through ADbridge.</h1>
+  <p class="lede">From the moment an advertiser lists a product to the moment a promoter gets paid — here's the full pipeline, including both payout structures.</p>
+  <div class="hero-actions">
+    <a href="signup.html" class="btn btn-primary">Create an account</a>
+    <a href="index.html" class="btn btn-ghost">Back to home</a>
   </div>
 </header>
 
@@ -101,7 +362,7 @@
   </div>
 </section>
 
-<footer class="wrap">
+<footer>
   <span>© 2026 ADbridge</span>
   <span>Built on a verified payout pipeline</span>
 </footer>

@@ -4,17 +4,143 @@
 <meta charset="UTF-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>Browse Products — ADbridge</title>
-<link rel="stylesheet" href="styles.css" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <style>
-  /* Page-only additions — scoped here since these are new patterns not in styles.css */
+  :root {
+    --blue: #4A5FE8;
+    --blue-dark: #3B4ED1;
+    --ink: #101828;
+    --muted: #6B7385;
+    --faint: #93A0B4;
+    --line: #E7EAF0;
+    --bg: #F6F7FB;
+    --card: #FFFFFF;
+    --green-bg: #E7F8EF;
+    --green: #1FA971;
+    --grey-bg: #F1F2F5;
+    --amber-bg: #FFF4E0;
+    --amber: #B45309;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    -webkit-font-smoothing: antialiased;
+  }
+  .wrap { max-width: 980px; margin: 0 auto; padding: 0 20px; }
+
+  /* ---------- nav ---------- */
+  .nav { background: var(--card); border-bottom: 1px solid var(--line); }
+  .nav .wrap {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+    padding-top: 18px;
+    padding-bottom: 18px;
+    flex-wrap: wrap;
+  }
+  .brand {
+    display: flex;
+    flex-direction: column;
+    text-decoration: none;
+    color: var(--ink);
+    line-height: 1.15;
+  }
+  .brand-name {
+    font-size: 22px;
+    font-weight: 800;
+    letter-spacing: -0.01em;
+  }
+  .brand-name span { color: var(--blue); }
+  .brand-tag { font-size: 12.5px; color: var(--faint); margin-top: 1px; }
+
+  .nav-actions { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .pill-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 10px 20px;
+    border-radius: 999px;
+    border: 1px solid var(--line);
+    background: var(--card);
+    color: var(--ink);
+    font-size: 14.5px;
+    font-weight: 600;
+    font-family: inherit;
+    cursor: pointer;
+    text-decoration: none;
+    transition: background .12s ease, border-color .12s ease;
+  }
+  .pill-btn:hover { background: var(--grey-bg); border-color: #D8DCE4; }
+  .user-chip {
+    color: var(--faint);
+    font-size: 13.5px;
+    padding-right: 4px;
+  }
+  @media (max-width: 640px) { .user-chip { display: none; } }
+
+  /* ---------- header ---------- */
+  .dash-header { padding: 40px 0 8px; }
+  .eyebrow {
+    font-size: 13px;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    color: var(--blue);
+    margin: 0 0 12px;
+  }
+  .dash-header h1 {
+    font-size: 38px;
+    line-height: 1.15;
+    font-weight: 800;
+    letter-spacing: -0.01em;
+    margin: 0 0 14px;
+  }
+  .dash-header p {
+    font-size: 16px;
+    color: var(--muted);
+    max-width: 46ch;
+    margin: 0;
+    line-height: 1.5;
+  }
+
+  .dash-loading { padding: 60px 0; text-align: center; color: var(--faint); }
+
+  /* ---------- search ---------- */
+  .search-row { margin: 28px 0 24px; }
+  .search-row input {
+    width: 100%;
+    box-sizing: border-box;
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 999px;
+    padding: 14px 20px;
+    color: var(--ink);
+    font-family: inherit;
+    font-size: 14.5px;
+    transition: border-color .12s ease;
+  }
+  .search-row input::placeholder { color: var(--faint); }
+  .search-row input:focus {
+    outline: none;
+    border-color: var(--blue);
+  }
+
+  /* ---------- product grid ---------- */
   .product-grid {
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
     gap: 20px;
+    padding-bottom: 48px;
   }
   .product-card {
-    border: 1px solid rgba(233,236,241,0.14);
-    border-radius: 12px;
+    background: var(--card);
+    border: 1px solid var(--line);
+    border-radius: 20px;
     padding: 18px;
     display: flex;
     flex-direction: column;
@@ -23,55 +149,84 @@
     width: 100%;
     height: 140px;
     object-fit: cover;
-    border-radius: 8px;
-    margin-bottom: 12px;
-    background: rgba(233,236,241,0.06);
+    border-radius: 12px;
+    margin-bottom: 14px;
+    background: var(--grey-bg);
     cursor: zoom-in;
   }
-  .product-card h3 { margin: 0 0 6px; font-size: 16px; }
-  .product-card p { margin: 0 0 12px; color: #93A0B4; font-size: 13px; flex-grow: 1; }
-  .product-meta { display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 12px; }
-  .product-meta .price { color: #E9ECF1; font-weight: 600; }
-  .product-meta .commission { color: #FFB020; }
-  .empty-state {
-    border: 1px dashed rgba(233,236,241,0.18);
-    border-radius: 12px;
-    padding: 32px 24px;
-    text-align: center;
-    color: #93A0B4;
+  .product-card h3 {
+    margin: 0 0 6px;
+    font-size: 16px;
+    font-weight: 700;
+    letter-spacing: -0.01em;
   }
-  .dash-loading { padding: 60px 0; text-align: center; color: #93A0B4; }
-  .user-chip { color: #93A0B4; font-size: 14px; }
-  /* Same layout as .nav-links, but never hidden on mobile — this is where
-     the logout control lives, and it must stay reachable at all widths. */
-  .nav-actions {
+  .product-card p {
+    margin: 0 0 14px;
+    color: var(--muted);
+    font-size: 13.5px;
+    line-height: 1.45;
+    flex-grow: 1;
+  }
+  .product-meta {
     display: flex;
+    justify-content: space-between;
     align-items: center;
-    gap: 14px;
-    font-size: 14.5px;
+    font-size: 13px;
+    margin-bottom: 14px;
   }
-  @media (max-width: 880px) {
-    .user-chip { display: none; }
-  }
-  .search-row { margin-bottom: 24px; }
-  .search-row input {
-    width: 100%;
-    box-sizing: border-box;
-    background: rgba(233,236,241,0.04);
-    border: 1px solid rgba(233,236,241,0.18);
-    border-radius: 8px;
-    padding: 10px 12px;
-    color: #E9ECF1;
-    font-family: inherit;
-    font-size: 14px;
+  .product-meta .price { color: var(--ink); font-weight: 700; }
+  .product-meta .commission {
+    color: var(--amber);
+    background: var(--amber-bg);
+    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 999px;
   }
 
-  /* Lightbox */
+  .btn-primary {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+    width: 100%;
+    padding: 13px 18px;
+    border: none;
+    border-radius: 999px;
+    background: linear-gradient(135deg, var(--blue), var(--blue-dark));
+    color: #fff;
+    font-family: inherit;
+    font-size: 14.5px;
+    font-weight: 700;
+    cursor: pointer;
+    text-decoration: none;
+    box-shadow: 0 10px 24px -10px rgba(74, 95, 232, 0.55);
+    transition: transform .1s ease, box-shadow .1s ease, opacity .1s ease;
+  }
+  .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 14px 28px -10px rgba(74, 95, 232, 0.6); }
+  .btn-primary:disabled {
+    background: var(--grey-bg);
+    color: var(--faint);
+    box-shadow: none;
+    cursor: default;
+    transform: none;
+  }
+
+  .empty-state {
+    border: 1.5px dashed var(--line);
+    border-radius: 16px;
+    padding: 32px 24px;
+    text-align: center;
+    color: var(--muted);
+    font-size: 14.5px;
+  }
+  .empty-state p { margin: 0; }
+
+  /* ---------- lightbox ---------- */
   .lightbox {
     display: none;
     position: fixed;
     inset: 0;
-    background: rgba(10,15,26,0.92);
+    background: rgba(16, 24, 40, 0.88);
     z-index: 50;
     align-items: center;
     justify-content: center;
@@ -83,20 +238,37 @@
     max-width: min(90vw, 720px);
     max-height: 85vh;
     object-fit: contain;
-    border-radius: 8px;
+    border-radius: 12px;
   }
   .lightbox-close {
     position: absolute;
     top: 20px;
     right: 24px;
-    background: none;
-    border: 1px solid rgba(233,236,241,0.24);
-    color: #E9ECF1;
-    width: 36px;
-    height: 36px;
+    background: var(--card);
+    border: 1px solid var(--line);
+    color: var(--ink);
+    width: 38px;
+    height: 38px;
     border-radius: 999px;
-    font-size: 18px;
+    font-size: 16px;
     cursor: pointer;
+  }
+  .lightbox-close:hover { background: var(--grey-bg); }
+
+  footer {
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px;
+    padding: 46px 20px 40px;
+    max-width: 980px;
+    margin: 0 auto;
+    color: var(--faint);
+    font-size: 13px;
+  }
+
+  @media (max-width: 480px) {
+    .dash-header h1 { font-size: 30px; }
   }
 </style>
 </head>
@@ -105,19 +277,12 @@
 <nav class="nav">
   <div class="wrap">
     <a href="index.html" class="brand">
-      <span class="brand-mark">
-        <svg viewBox="0 0 26 18" fill="none">
-          <path d="M1 15 C 6 4, 20 4, 25 15" stroke="#FFB020" stroke-width="2" stroke-linecap="round"/>
-          <circle cx="1" cy="15" r="2" fill="#E9ECF1"/>
-          <circle cx="25" cy="15" r="2" fill="#E9ECF1"/>
-        </svg>
-      </span>
-      ADbridge
+      <span class="brand-name">AD<span>bridge</span></span>
+      <span class="brand-tag">Promote products. Earn on every campaign.</span>
     </a>
-    <div class="nav-links"></div>
     <div class="nav-actions">
       <span class="user-chip" id="user-chip"></span>
-      <button type="button" class="btn btn-ghost" id="logout-btn">Log out</button>
+      <button type="button" class="pill-btn" id="logout-btn">Log out</button>
     </div>
   </div>
 </nav>
@@ -126,11 +291,10 @@
 
 <div id="dash-content" style="display:none;">
 
-  <header class="wrap section-border">
-    <div class="section-head">
-      <h2>Browse products</h2>
-      <p>Pick a product to promote and start earning commission.</p>
-    </div>
+  <header class="wrap dash-header">
+    <p class="eyebrow">BROWSE PRODUCTS</p>
+    <h1>Find something to promote</h1>
+    <p>Pick a product to promote and start earning commission.</p>
   </header>
 
   <section class="wrap">
@@ -151,7 +315,7 @@
   <img id="lightbox-img" src="" alt="" />
 </div>
 
-<footer class="wrap">
+<footer>
   <span>© 2026 ADbridge</span>
   <span>Built on a verified payout pipeline</span>
 </footer>
@@ -222,7 +386,7 @@
           ${p.price != null ? `<span class="price">₦${Number(p.price).toLocaleString()}</span>` : `<span class="price">Fixed interest</span>`}
           <span class="commission">${p.earning_type === "fixed" ? `${Number(p.fixed_rate)}% fixed` : `${Number(p.commission_rate)}% commission`}</span>
         </div>
-        <button type="button" class="btn btn-primary promote-btn" data-id="${p.id}" data-name="${escapeHtml(p.name)}" ${alreadyPromoting ? "disabled" : ""}>
+        <button type="button" class="btn-primary promote-btn" data-id="${p.id}" data-name="${escapeHtml(p.name)}" ${alreadyPromoting ? "disabled" : ""}>
           ${alreadyPromoting ? "Already promoting" : "Promote this"}
         </button>
       `;
